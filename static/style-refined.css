@@ -619,7 +619,8 @@ tbody tr:hover {
 .hero-timer.timer-section::after {
     box-shadow:
         0 0 0 1px rgba(255,255,255,0.08),
-        0 20px 50px rgba(67, 56, 202, 0.35);
+        0 24px 48px rgba(67, 56, 202, 0.32);
+    opacity: 0.55;
 }
 
 .hero-timer .elapsed-time,
