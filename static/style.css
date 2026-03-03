@@ -158,7 +158,7 @@ p {
 
 .dashboard {
     width: min(100%, var(--max-width));
-    block-size: 100dvh;
+    height: 100vh;
     margin: 0 auto;
     padding: var(--space-3) var(--space-4);
     display: flex;
@@ -182,8 +182,8 @@ p {
     justify-content: space-between;
     gap: var(--space-4);
     flex-wrap: wrap;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); /* Elite polish: ultra-subtle separation */
-    padding-bottom: var(--space-5); /* Elite polish: add bottom padding to match top */
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    padding: var(--space-3) var(--space-5) var(--space-3) var(--space-5);
 }
 
 .header-left,
@@ -191,6 +191,46 @@ p {
     display: flex;
     align-items: center;
     gap: var(--space-3);
+}
+
+/* Two-column hero layout */
+.main-content-grid {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: var(--space-4);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.hero-timer-column {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
+.info-cards-column {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: var(--space-2);
+}
+
+/* Minimal scrollbar for info cards */
+.info-cards-column::-webkit-scrollbar {
+    width: 6px;
+}
+
+.info-cards-column::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.info-cards-column::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
 }
 
 .logo {
@@ -391,6 +431,42 @@ p {
     color: var(--text-secondary);
 }
 
+/* Info cards - consistent design */
+.info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+    transition: all 0.2s ease;
+}
+
+.info-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+}
+
+.info-card .status-card-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: var(--font-semibold);
+    margin-bottom: 0.5rem;
+}
+
+.info-card .status-card-value {
+    font-size: clamp(1.5rem, 2vw, 1.875rem);
+    font-weight: var(--font-semibold);
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.info-card .status-card-detail {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
 #card-connection.connected .status-card-value {
     color: var(--success);
 }
@@ -529,6 +605,41 @@ p {
     color: var(--text-tertiary);
     font-weight: var(--font-medium);
     opacity: 0.50; /* Ultra-polish: subtle tertiary reinforcement */
+}
+
+/* Hero timer styling */
+.hero-timer {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+}
+
+.hero-timer .timer-ring-wrap {
+    --ring-size: clamp(220px, 35vh, 260px);
+}
+
+.hero-timer .elapsed-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.hero-timer .elapsed-time {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.hero-timer .elapsed-target {
+    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    color: var(--text-secondary);
+    font-weight: var(--font-medium);
 }
 
 .elapsed-display.progress-low #elapsed-time {
@@ -700,10 +811,11 @@ p {
 }
 
 #tab-live {
-    display: grid;
-    grid-template-rows: auto auto 1fr;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-3);
-    min-block-size: 0;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -900,9 +1012,23 @@ button:focus-visible,
 
 @media (max-width: 980px) {
     .dashboard {
-        block-size: auto;
-        min-block-size: 100dvh;
+        height: auto;
+        min-height: 100vh;
         overflow: visible;
+    }
+
+    .main-content-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .info-cards-column {
+        overflow-y: visible;
+        padding-right: 0;
+    }
+
+    .hero-timer .timer-ring-wrap {
+        --ring-size: min(70vw, 240px);
     }
 
     .status-cards-grid,
@@ -922,7 +1048,7 @@ button:focus-visible,
 
     .timer-section {
         padding: var(--space-4);
-        padding-bottom: calc(var(--space-4) + 0.5rem); /* Elite polish: maintain bottom breathing on mobile */
+        padding-bottom: calc(var(--space-4) + 0.5rem);
     }
 
     .tab-content {

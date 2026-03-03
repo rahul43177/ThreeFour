@@ -186,9 +186,10 @@
         // Task 7.4: Timer section for celebration animation
         dom.timerSection = document.querySelector(".timer-section");
 
-        // Arrival section
-        dom.arrivalSection = document.getElementById("arrival-section");
-        dom.arrivalTime = document.getElementById("arrival-time");
+        // Office arrival card
+        dom.cardOfficeArrival = document.getElementById("card-office-arrival");
+        dom.cardOfficeArrivalValue = document.getElementById("card-office-arrival-value");
+        dom.cardOfficeArrivalDetail = document.getElementById("card-office-arrival-detail");
 
         // Task 7.6: Dark mode toggle
         dom.themeToggle = document.getElementById("theme-toggle");
@@ -1206,17 +1207,21 @@
             dom.cardConnectionDetail.textContent = ssid;
         }
 
-        // Arrival time display (Enhancement 2)
-        if (dom.arrivalSection && dom.arrivalTime && state.today && state.today.sessions && state.today.sessions.length > 0) {
-            const firstSession = state.today.sessions[0];
-            if (firstSession.start_time) {
-                dom.arrivalTime.textContent = firstSession.start_time;
-                dom.arrivalSection.style.display = "block";
+        // Card 4: Office Arrival Time
+        if (dom.cardOfficeArrivalValue && dom.cardOfficeArrivalDetail) {
+            if (state.today && state.today.sessions && state.today.sessions.length > 0) {
+                const firstSession = state.today.sessions[0];
+                if (firstSession.start_time) {
+                    dom.cardOfficeArrivalValue.textContent = firstSession.start_time;
+                    dom.cardOfficeArrivalDetail.textContent = "First login today";
+                } else {
+                    dom.cardOfficeArrivalValue.textContent = "--:--:-- -- IST";
+                    dom.cardOfficeArrivalDetail.textContent = "No session data";
+                }
             } else {
-                dom.arrivalSection.style.display = "none";
+                dom.cardOfficeArrivalValue.textContent = "--:--:-- -- IST";
+                dom.cardOfficeArrivalDetail.textContent = "Waiting for data";
             }
-        } else if (dom.arrivalSection) {
-            dom.arrivalSection.style.display = "none";
         }
 
         // Card 2: Free At (when you can leave)
