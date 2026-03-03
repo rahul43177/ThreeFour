@@ -614,11 +614,17 @@ tbody tr:hover {
 .hero-timer.timer-section {
     background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
     border: none;
-    box-shadow: 0 4px 12px rgba(67, 56, 202, 0.2);
+}
+
+.hero-timer.timer-section::after {
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        0 20px 50px rgba(67, 56, 202, 0.35);
 }
 
 .hero-timer .elapsed-time,
-.hero-timer .elapsed-target {
+.hero-timer .elapsed-target,
+.hero-timer #target-display {
     color: #ffffff;
 }
 
@@ -629,6 +635,10 @@ tbody tr:hover {
 
 #card-free-at.info-card {
     border-left: 3px solid #8b5cf6;
+}
+
+#card-today.info-card {
+    border-left: 3px solid #ec4899;
 }
 
 #card-remaining.info-card {
