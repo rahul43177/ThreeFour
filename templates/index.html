@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ThreeFour</title>
     <link rel="icon" type="image/png" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSfHpMcC4daqrDBNG72KOoGGfU9JfXo1V8BXa7cMNwQmQdKMy9kzslzdPU&s">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=20260304-live-state-fix">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -43,6 +43,15 @@
         </section>
 
         <p id="sync-status" class="muted sync-status hidden" aria-live="polite"></p>
+
+        <section id="out-of-office-panel" class="out-of-office-panel hidden" aria-live="polite">
+            <h2 class="out-of-office-title">Disconnected</h2>
+            <p id="out-of-office-subtitle" class="out-of-office-subtitle">
+                <span class="out-of-office-line">Out of office.</span>
+                <span class="out-of-office-line">Current Wi-Fi : <span id="out-of-office-current-ssid" class="out-of-office-wifi-current">Not connected</span></span>
+                <span class="out-of-office-line">Expected Wi-Fi : <span id="out-of-office-office-ssid" class="out-of-office-wifi-target">Office Wi-Fi</span></span>
+            </p>
+        </section>
 
         <!-- Two-column hero layout -->
         <div class="main-content-grid">
@@ -289,6 +298,6 @@
 </div>
 
 <script>window.OFFICE_WIFI_NAME = "{{ office_wifi_name }}";</script>
-<script src="/static/app.js" defer></script>
+<script src="/static/app.js?v=20260304-live-state-fix" defer></script>
 </body>
 </html>

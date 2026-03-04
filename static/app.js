@@ -60,6 +60,11 @@
         todayTotalDisplay: null,
         notificationBadge: null,
         tabLive: null,
+        mainContentGrid: null,
+        outOfOfficePanel: null,
+        outOfOfficeSubtitle: null,
+        outOfOfficeCurrentSsid: null,
+        outOfOfficeOfficeSsid: null,
         tabToday: null,
         tabWeekly: null,
         weeklyTableBody: null,
@@ -149,6 +154,11 @@
         dom.notificationBadge = document.getElementById("notification-status-badge");
 
         dom.tabLive = document.getElementById("tab-live");
+        dom.mainContentGrid = document.querySelector("#tab-live .main-content-grid");
+        dom.outOfOfficePanel = document.getElementById("out-of-office-panel");
+        dom.outOfOfficeSubtitle = document.getElementById("out-of-office-subtitle");
+        dom.outOfOfficeCurrentSsid = document.getElementById("out-of-office-current-ssid");
+        dom.outOfOfficeOfficeSsid = document.getElementById("out-of-office-office-ssid");
         dom.tabToday = document.getElementById("tab-today");
         dom.tabWeekly = document.getElementById("tab-weekly");
 
@@ -1115,7 +1125,7 @@
             return;
         }
         try {
-            new Notification("DailyFour", {
+            new Notification("ThreeFour", {
                 body: "4-hour target reached (including buffer). You're all set!",
             });
         } catch (err) {
@@ -1164,6 +1174,57 @@
             return clamp(state.status.progress_percent, 0, 100);
         }
         return 0;
+    }
+
+    function isOutOfOffice() {
+        if (!state.status) {
+            return false;
+        }
+        // Backend sets `connected=true` only when current SSID matches the office Wi-Fi from .env.
+        return !Boolean(state.status.connected);
+    }
+
+    function renderLiveViewState() {
+        const outOfOffice = isOutOfOffice();
+
+        if (dom.tabLive) {
+            dom.tabLive.classList.toggle("out-of-office-state", outOfOffice);
+        }
+
+        if (dom.mainContentGrid) {
+            dom.mainContentGrid.classList.toggle("hidden", outOfOffice);
+        }
+
+        if (dom.contextualMessage) {
+            dom.contextualMessage.classList.toggle("hidden", outOfOffice);
+        }
+
+        if (dom.completionBanner && outOfOffice) {
+            dom.completionBanner.classList.add("hidden");
+        }
+
+        if (dom.outOfOfficePanel) {
+            dom.outOfOfficePanel.classList.toggle("hidden", !outOfOffice);
+
+            if (outOfOffice && dom.outOfOfficeSubtitle) {
+                const officeWifi = typeof window.OFFICE_WIFI_NAME === "string"
+                    ? window.OFFICE_WIFI_NAME.trim()
+                    : "";
+                const currentSsid = state.status && typeof state.status.ssid === "string"
+                    ? state.status.ssid.trim()
+                    : "";
+
+                if (dom.outOfOfficeCurrentSsid) {
+                    dom.outOfOfficeCurrentSsid.textContent = currentSsid || "Not connected";
+                }
+
+                if (dom.outOfOfficeOfficeSsid) {
+                    dom.outOfOfficeOfficeSsid.textContent = officeWifi || "Office Wi-Fi";
+                }
+            }
+        }
+
+        return outOfOffice;
     }
 
     function renderConnection() {
@@ -1374,6 +1435,10 @@
             return;
         }
 
+        if (renderLiveViewState()) {
+            return;
+        }
+
         if (!state.status.session_active) {
             const targetDisplay = state.status.target_display || "4h 10m";
             dom.timerModeLabel.textContent = "Session Progress";
@@ -1464,6 +1529,7 @@
     // Task 7.5: Render contextual insights & messaging
     function renderContextualMessage() {
         if (!dom.contextualMessage) return;
+        if (isOutOfOffice()) return;
 
         const isConnected = state.status && Boolean(state.status.connected);
         const sessionActive = state.status && Boolean(state.status.session_active);
@@ -1663,8 +1729,13 @@
     function renderAll() {
         renderConnection();
         renderStartTime();
-        renderTimer();
         renderTodaySessions();
+
+        if (renderLiveViewState()) {
+            return;
+        }
+
+        renderTimer();
         renderStatusCards(); // Task 7.2
         renderContextualMessage(); // Task 7.5
     }
