@@ -90,11 +90,11 @@
     --primary-strong: #93c5fd;
 
     --success: #34d399;
-    --warning: #fbbf24;
-    --error: #f87171;
+    --warning: #c69a5f;
+    --error: #cf8994;
 
     --progress: var(--primary);
-    --progress-warning: #f59e0b;
+    --progress-warning: #c99858;
     --progress-complete: #22c55e;
     --progress-bg: #223047;
 
@@ -108,30 +108,30 @@
 }
 
 [data-theme="dark"] .info-card {
-    background: rgba(17, 26, 46, 0.55);
-    backdrop-filter: blur(20px) saturate(1.3);
-    -webkit-backdrop-filter: blur(20px) saturate(1.3);
-    border-color: rgba(255, 255, 255, 0.06);
+    background: var(--surface);
+    border-color: var(--border);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 [data-theme="dark"] .info-card:hover {
-    background: rgba(17, 26, 46, 0.7);
-    border-color: rgba(96, 165, 250, 0.15);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(96, 165, 250, 0.08);
+    background: var(--surface);
+    border-color: var(--border-strong);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 
 /* Dark mode: glass hero timer */
 [data-theme="dark"] .hero-timer {
-    background: rgba(17, 26, 46, 0.4);
-    backdrop-filter: blur(24px) saturate(1.2);
-    -webkit-backdrop-filter: blur(24px) saturate(1.2);
-    border-color: rgba(255, 255, 255, 0.05);
+    background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+    border-color: color-mix(in srgb, var(--border-strong) 78%, transparent);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 [data-theme="dark"] .hero-timer::after {
     box-shadow:
         0 0 0 1px rgba(255, 255, 255, 0.03),
-        0 24px 64px rgba(0, 0, 0, 0.35);
+        0 14px 36px rgba(0, 0, 0, 0.28);
 }
 
 /* Elite polish: Dark mode countdown pill depth */
@@ -226,55 +226,51 @@ p {
 /* Flat bento grid — timer + cards all in one grid */
 .main-content-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 1fr;
-    grid-template-rows: auto 1fr 1fr;
-    gap: var(--space-3);
+    grid-template-columns: minmax(0, 1.46fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 12px;
     flex: 1;
     min-height: 0;
     overflow: hidden;
 }
 
-/* Flatten wrappers so children participate in parent grid */
-.hero-timer-column,
+/* Desktop two-column structure: hero left, stacked info cards right */
+.hero-timer-column {
+    min-height: 0;
+    display: flex;
+}
+
 .info-cards-column {
-    display: contents;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 10px;
+    min-height: 0;
 }
 
-/* Bento placements */
 .hero-timer {
-    grid-column: 1;
-    grid-row: 1 / -1;
+    grid-column: auto;
+    grid-row: auto;
+    flex: 1;
 }
 
-#card-connection {
-    grid-column: 2 / -1;
-    grid-row: 1;
-}
-
-#card-free-at {
-    grid-column: 2;
-    grid-row: 2;
-}
-
-#card-remaining {
-    grid-column: 3;
-    grid-row: 2;
-}
-
+#card-connection,
+#card-free-at,
+#card-remaining,
 #card-today {
-    grid-column: 2;
-    grid-row: 3;
+    grid-column: auto;
+    grid-row: auto;
 }
 
 #card-office-arrival {
-    grid-column: 3;
-    grid-row: 3;
+    grid-column: auto;
+    grid-row: auto;
 }
 
 /* Connection card: compact horizontal status bar */
 #card-connection.info-card {
     min-height: auto;
-    padding: var(--space-3) var(--space-5);
+    padding: 12px 16px;
 }
 
 #card-connection .status-card-content {
@@ -508,8 +504,8 @@ p {
 .info-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: var(--space-6);
+    border-radius: 14px;
+    padding: 14px 16px;
     display: flex;
     align-items: stretch;
     box-shadow: var(--shadow-sm);
@@ -528,43 +524,34 @@ p {
 }
 
 /* Accent borders for visual categorization */
-#card-free-at.info-card {
-    border-left: 3px solid var(--primary);
-}
-
+#card-free-at.info-card,
 #card-remaining.info-card {
-    border-left: 3px solid var(--warning);
+    border-left: 1px solid var(--border);
 }
 
-#card-today.info-card {
-    border-left: 3px solid #8b5cf6;
-}
-
-#card-office-arrival.info-card {
-    border-left: 3px solid #14b8a6;
-}
-
+#card-today.info-card,
+#card-office-arrival.info-card,
 #card-connection.info-card {
-    border-left: 3px solid var(--success);
+    border-left: 1px solid var(--border);
 }
 
 #card-connection.disconnected.info-card {
-    border-left-color: var(--error);
+    border-left-color: var(--border);
 }
 
 .info-card .status-card-label {
     font-size: 0.72rem;
     color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     font-weight: var(--font-semibold);
     margin-bottom: 0;
-    opacity: 0.65;
+    opacity: 0.56;
 }
 
 .info-card .status-card-value {
-    font-size: clamp(2rem, 2.8vw, 2.5rem);
-    font-weight: 650;
+    font-size: clamp(1.72rem, 2.1vw, 2.15rem);
+    font-weight: 640;
     color: var(--text);
     margin-bottom: 0;
     font-variant-numeric: tabular-nums;
@@ -583,6 +570,8 @@ p {
 .info-card .status-card-detail {
     font-size: 0.875rem;
     color: var(--text-secondary);
+    margin-top: 2px;
+    opacity: 0.76;
 }
 
 .info-card .status-card-content {
@@ -590,7 +579,8 @@ p {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 4px;
 }
 
 #card-connection.connected .status-card-value {
@@ -609,21 +599,20 @@ p {
 
 /* Remaining time card color coding */
 #card-remaining.progress-low .status-card-value {
-    color: var(--primary);
+    color: color-mix(in srgb, var(--primary) 84%, var(--text-secondary));
 }
 
 #card-remaining.progress-medium .status-card-value {
-    color: var(--warning);
+    color: color-mix(in srgb, var(--warning) 82%, var(--text-secondary));
 }
 
 #card-remaining.progress-high .status-card-value,
 #card-remaining.progress-complete .status-card-value {
-    color: var(--success);
+    color: color-mix(in srgb, var(--success) 86%, var(--text-secondary));
 }
 
 .timer-section {
     padding: var(--space-4);
-    padding-bottom: calc(var(--space-4) + 0.5rem); /* Elite polish: +8px bottom breathing room */
 }
 
 #timer-mode-label {
@@ -703,8 +692,8 @@ p {
 
 #elapsed-time {
     font-size: clamp(1.55rem, 2.9vw, 2.35rem);
-    font-weight: 650;
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    letter-spacing: -0.015em;
     line-height: 1;
     color: var(--text);
     font-variant-numeric: tabular-nums;
@@ -744,12 +733,13 @@ p {
 /* Hero timer styling */
 .hero-timer {
     width: 100%;
+    height: 100%;
     max-width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: var(--space-6) var(--space-4);
+    padding: 10px 16px 8px;
     position: relative;
     border-radius: var(--radius);
 }
@@ -761,13 +751,17 @@ p {
     border-radius: inherit;
     pointer-events: none;
     box-shadow:
-        0 0 0 1px rgba(255,255,255,0.04),
-        0 24px 64px rgba(0,0,0,0.2);
-    opacity: 0.6;
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 14px 36px rgba(0,0,0,0.16);
+    opacity: 0.52;
 }
 
 .hero-timer .timer-ring-wrap {
-    --ring-size: clamp(240px, 42vh, 400px);
+    --ring-size: clamp(262px, 45vh, 400px);
+}
+
+.hero-timer .timer-ring-layout {
+    transform: translateY(12px);
 }
 
 .hero-timer .elapsed-display {
@@ -1342,10 +1336,11 @@ button:focus-visible,
 
     .main-content-grid {
         gap: 10px;
+        grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
     }
 
-    .status-cards-grid {
-        margin-bottom: var(--space-2);
+    .info-cards-column {
+        gap: 8px;
     }
 
     .status-card {
@@ -1353,11 +1348,11 @@ button:focus-visible,
     }
 
     .info-card {
-        padding: var(--space-3);
+        padding: 10px 12px;
     }
 
     .status-card-value {
-        font-size: clamp(1.25rem, 1.7vw, 1.5rem);
+        font-size: clamp(1.15rem, 1.45vw, 1.35rem);
     }
 
     .info-card .status-card-label {
@@ -1369,17 +1364,21 @@ button:focus-visible,
     }
 
     .hero-timer {
-        padding: var(--space-3);
+        padding: 10px 12px;
     }
 
     .hero-timer .timer-ring-wrap {
-        --ring-size: clamp(280px, 45vh, 380px);
+        --ring-size: clamp(246px, 38vh, 336px);
     }
 
-    /* hero-timer-column is display:contents on desktop, no padding needed */
+    .hero-timer .timer-ring-layout {
+        transform: translateY(8px);
+    }
+
+    /* hero-timer-column is a flex container on desktop */
 
     #elapsed-time {
-        font-size: clamp(2.2rem, 4vw, 3.2rem);
+        font-size: clamp(2rem, 3.25vw, 2.8rem);
         font-weight: 700;
     }
 
@@ -1399,11 +1398,11 @@ button:focus-visible,
     }
 
     #card-connection.info-card {
-        padding: var(--space-2) var(--space-3);
+        padding: 10px 12px;
     }
 
     #card-connection .status-card-value {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
 }
 
@@ -1719,4 +1718,3 @@ button:focus-visible,
         font-size: 1.25rem;
     }
 }
-
