@@ -609,3 +609,43 @@ tbody tr:hover {
         font-size: 2rem;
     }
 }
+
+/* Hero timer gradient for refined theme */
+.hero-timer.timer-section {
+    background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+    border: none;
+}
+
+.hero-timer.timer-section::after {
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        0 24px 48px rgba(67, 56, 202, 0.32);
+    opacity: 0.55;
+}
+
+.hero-timer .elapsed-time,
+.hero-timer .elapsed-target,
+.hero-timer #target-display {
+    color: #ffffff;
+}
+
+/* Info card accent borders */
+#card-connection.info-card {
+    border-left: 3px solid #3b82f6;
+}
+
+#card-free-at.info-card {
+    border-left: 3px solid #8b5cf6;
+}
+
+#card-today.info-card {
+    border-left: 3px solid #ec4899;
+}
+
+#card-remaining.info-card {
+    border-left: 3px solid #f59e0b;
+}
+
+#card-office-arrival.info-card {
+    border-left: 3px solid #14b8a6;
+}

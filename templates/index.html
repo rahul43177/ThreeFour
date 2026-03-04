@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ThreeFour</title>
     <link rel="icon" type="image/png" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSfHpMcC4daqrDBNG72KOoGGfU9JfXo1V8BXa7cMNwQmQdKMy9kzslzdPU&s">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=20260304-live-state-fix">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -42,95 +42,110 @@
             <p class="muted" id="session-started-at">Started at <span id="start-time">--:--:--</span></p>
         </section>
 
-        <!-- Status Cards Grid (Task 7.2) -->
-        <div class="status-cards-grid">
-            <!-- Card 1: Connection Status -->
-            <section class="status-card" id="card-connection">
-                <div class="status-card-content">
-                    <div class="status-card-label">Connection</div>
-                    <div id="card-connection-value" class="status-card-value">Connected</div>
-                    <div id="card-connection-detail" class="status-card-detail">{{ office_wifi_name }}</div>
-                </div>
-            </section>
-
-            <!-- Card 2: Free At (When you can leave) -->
-            <section class="status-card" id="card-free-at">
-                <div class="status-card-content">
-                    <div class="status-card-label">Free At</div>
-                    <div id="card-free-at-value" class="status-card-value">--:--:--</div>
-                    <div id="card-free-at-detail" class="status-card-detail">Target completion time</div>
-                </div>
-            </section>
-
-            <!-- Card 3: Personal Leave Time -->
-            <section class="status-card" id="card-today">
-                <div class="status-card-content">
-                    <div class="status-card-label">Personal Leave At</div>
-                    <div id="card-today-value" class="status-card-value">--:--:-- -- IST</div>
-                    <div id="card-today-detail" class="status-card-detail">First login + target</div>
-                </div>
-            </section>
-
-            <!-- Card 4: Time Remaining -->
-            <section class="status-card" id="card-remaining">
-                <div class="status-card-content">
-                    <div class="status-card-label">Remaining</div>
-                    <div id="card-remaining-value" class="status-card-value">00:00:00</div>
-                    <div id="card-remaining-detail" class="status-card-detail">Until target</div>
-                </div>
-            </section>
-        </div>
-
-        <!-- Arrival Time Display -->
-        <section class="card arrival-section" id="arrival-section" style="display: none;">
-            <div class="arrival-content">
-                <div class="arrival-icon">🏢</div>
-                <div class="arrival-text">
-                    <div class="arrival-label">Came to office at</div>
-                    <div id="arrival-time" class="arrival-time">--:--:-- -- IST</div>
-                </div>
-            </div>
-        </section>
-
         <p id="sync-status" class="muted sync-status hidden" aria-live="polite"></p>
 
-        <!-- Timer Display Section -->
-        <section class="card timer-section">
-            <p class="muted" id="timer-mode-label">Session Progress</p>
-            <div class="timer-ring-layout">
-                <div class="timer-ring-wrap">
-                    <svg class="progress-ring" viewBox="0 0 220 220" aria-hidden="true" focusable="false">
-                        <circle class="progress-ring-track" cx="110" cy="110" r="96"></circle>
-                        <circle id="progress-ring-fill" class="progress-ring-fill" cx="110" cy="110" r="96"></circle>
-                    </svg>
-                    <div id="elapsed-display" class="elapsed-display">
-                        <span id="elapsed-time">00:00:00</span>
-                        <span class="elapsed-target">
-                            <span class="elapsed-separator">/</span>
-                            <span id="target-display">{{ target_display }}</span>
-                        </span>
-                        <span id="elapsed-percent" class="elapsed-percent">(0%)</span>
-                    </div>
-                </div>
-            </div>
-            <div class="progress-wrap">
-                <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                    <div id="progress-fill" class="progress-fill"></div>
-                </div>
-            </div>
-            <div class="countdown-section">
-                <span class="countdown-label">Countdown:</span>
-                <span id="timer-display" class="timer-countdown" aria-live="polite" aria-atomic="true">00:00:00</span>
-            </div>
-            <div class="free-at-section">
-                <span id="free-at-label" class="free-at-label">You can leave at (IST):</span>
-                <span id="free-at-time" class="free-at-time">--:--:-- -- IST</span>
-            </div>
-            <!-- Screen reader announcement for timer milestones --><div id="timer-announcements" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
-            <!-- Task 7.5: Contextual Insights & Messaging -->
-            <p id="contextual-message" class="contextual-message"></p>
-            <p id="completion-banner" class="completion hidden">Completed! Total: <span id="completed-total">00:00:00</span></p>
+        <section id="out-of-office-panel" class="out-of-office-panel hidden" aria-live="polite">
+            <h2 class="out-of-office-title">Disconnected</h2>
+            <p id="out-of-office-subtitle" class="out-of-office-subtitle">
+                <span class="out-of-office-line">Out of office.</span>
+                <span class="out-of-office-line">Current Wi-Fi : <span id="out-of-office-current-ssid" class="out-of-office-wifi-current">Not connected</span></span>
+                <span class="out-of-office-line">Expected Wi-Fi : <span id="out-of-office-office-ssid" class="out-of-office-wifi-target">Office Wi-Fi</span></span>
+            </p>
         </section>
+
+        <!-- Two-column hero layout -->
+        <div class="main-content-grid">
+            <!-- Left: Hero Timer Column -->
+            <div class="hero-timer-column">
+                <section class="card timer-section hero-timer">
+                    <div class="timer-ring-layout">
+                        <div class="timer-ring-wrap">
+                            <svg class="progress-ring" viewBox="0 0 220 220" aria-hidden="true" focusable="false">
+                                <circle class="progress-ring-track" cx="110" cy="110" r="96"></circle>
+                                <circle id="progress-ring-fill" class="progress-ring-fill" cx="110" cy="110" r="96"></circle>
+                            </svg>
+                            <div id="elapsed-display" class="elapsed-display">
+                                <span id="elapsed-time">00:00:00</span>
+                                <span class="elapsed-target">
+                                    <span id="target-display">{{ target_display }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="timer-announcements" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+                </section>
+            </div>
+
+            <!-- Right: Info Cards Column -->
+            <div class="info-cards-column">
+                <!-- Card 1: Connection -->
+                <section class="status-card info-card" id="card-connection">
+                    <div class="status-card-content">
+                        <div class="status-card-label">Connection</div>
+                        <div id="card-connection-value" class="status-card-value">Connected</div>
+                        <div id="card-connection-detail" class="status-card-detail">{{ office_wifi_name }}</div>
+                    </div>
+                </section>
+
+                <!-- Card 2: Free At -->
+                <section class="status-card info-card" id="card-free-at">
+                    <div class="status-card-content">
+                        <div class="status-card-label">Free At</div>
+                        <div id="card-free-at-value" class="status-card-value">--:--:--</div>
+                        <div id="card-free-at-detail" class="status-card-detail">Target completion time</div>
+                    </div>
+                </section>
+
+                <!-- Card 3: Personal Leave At -->
+                <section class="status-card info-card" id="card-today">
+                    <div class="status-card-content">
+                        <div class="status-card-label">Personal Leave At</div>
+                        <div id="card-today-value" class="status-card-value">--:--:--</div>
+                        <div id="card-today-detail" class="status-card-detail">First login + target</div>
+                    </div>
+                </section>
+
+                <!-- Card 4: Remaining -->
+                <section class="status-card info-card" id="card-remaining">
+                    <div class="status-card-content">
+                        <div class="status-card-label">Remaining</div>
+                        <div id="card-remaining-value" class="status-card-value">00:00:00</div>
+                        <div id="card-remaining-detail" class="status-card-detail">Until target</div>
+                    </div>
+                </section>
+
+                <!-- Card 5: Came to Office At -->
+                <section class="status-card info-card" id="card-office-arrival">
+                    <div class="status-card-content">
+                        <div class="status-card-label">Came to Office At</div>
+                        <div id="card-office-arrival-value" class="status-card-value">--:--:--</div>
+                        <div id="card-office-arrival-detail" class="status-card-detail">First login today</div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Contextual messages outside grid -->
+        <p id="contextual-message" class="contextual-message"></p>
+        <p id="completion-banner" class="completion hidden">Completed! Total: <span id="completed-total">00:00:00</span></p>
+
+        <!-- Hidden elements kept for JavaScript compatibility -->
+        <p class="muted" id="timer-mode-label" style="display: none;">Session Progress</p>
+        <span class="elapsed-separator" style="display: none;">/</span>
+        <span id="elapsed-percent" class="elapsed-percent" style="display: none;">(0%)</span>
+        <div class="progress-wrap" style="display: none;">
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+        </div>
+        <div class="countdown-section" style="display: none;">
+            <span class="countdown-label">Countdown:</span>
+            <span id="timer-display" class="timer-countdown" aria-live="polite" aria-atomic="true">00:00:00</span>
+        </div>
+        <div class="free-at-section" style="display: none;">
+            <span id="free-at-label" class="free-at-label">You can leave at (IST):</span>
+            <span id="free-at-time" class="free-at-time">--:--:-- -- IST</span>
+        </div>
     </div>
 
     <div id="tab-today" class="tab-content hidden" role="tabpanel" aria-labelledby="today-tab">
@@ -283,6 +298,6 @@
 </div>
 
 <script>window.OFFICE_WIFI_NAME = "{{ office_wifi_name }}";</script>
-<script src="/static/app.js" defer></script>
+<script src="/static/app.js?v=20260304-live-state-fix" defer></script>
 </body>
 </html>

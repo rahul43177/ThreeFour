@@ -70,7 +70,7 @@
     --ring-size: clamp(196px, 30vh, 286px);
     --ring-stroke: 10; /* Ultra-polish: increased from 9 for more prominence */
 
-    --max-width: 1160px;
+    --max-width: 1440px;
 }
 
 [data-theme="dark"] {
@@ -90,11 +90,11 @@
     --primary-strong: #93c5fd;
 
     --success: #34d399;
-    --warning: #fbbf24;
-    --error: #f87171;
+    --warning: #c69a5f;
+    --error: #cf8994;
 
     --progress: var(--primary);
-    --progress-warning: #f59e0b;
+    --progress-warning: #c99858;
     --progress-complete: #22c55e;
     --progress-bg: #223047;
 
@@ -102,9 +102,36 @@
     --shadow-md: 0 16px 30px rgba(0, 0, 0, 0.35);
 }
 
-/* Ultra-polish: Dark mode status card hover shadow */
+/* Dark mode: glass morphism on cards */
 [data-theme="dark"] .status-card:hover {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.40);
+}
+
+[data-theme="dark"] .info-card {
+    background: var(--surface);
+    border-color: var(--border);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+[data-theme="dark"] .info-card:hover {
+    background: var(--surface);
+    border-color: var(--border-strong);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+/* Dark mode: glass hero timer */
+[data-theme="dark"] .hero-timer {
+    background: color-mix(in srgb, var(--surface) 88%, var(--bg));
+    border-color: color-mix(in srgb, var(--border-strong) 78%, transparent);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+[data-theme="dark"] .hero-timer::after {
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.03),
+        0 14px 36px rgba(0, 0, 0, 0.28);
 }
 
 /* Elite polish: Dark mode countdown pill depth */
@@ -131,6 +158,7 @@ body {
     color: var(--text);
     background: var(--bg);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     overflow: hidden;
 }
@@ -158,9 +186,9 @@ p {
 
 .dashboard {
     width: min(100%, var(--max-width));
-    block-size: 100dvh;
+    height: 100vh;
     margin: 0 auto;
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-3) var(--space-5);
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
@@ -182,8 +210,9 @@ p {
     justify-content: space-between;
     gap: var(--space-4);
     flex-wrap: wrap;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); /* Elite polish: ultra-subtle separation */
-    padding-bottom: var(--space-5); /* Elite polish: add bottom padding to match top */
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    padding: var(--space-3) var(--space-5);
+    flex-shrink: 0;
 }
 
 .header-left,
@@ -191,6 +220,79 @@ p {
     display: flex;
     align-items: center;
     gap: var(--space-3);
+}
+
+/* Bento grid layout — Apple-style dashboard */
+/* Flat bento grid — timer + cards all in one grid */
+.main-content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.46fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Desktop two-column structure: hero left, stacked info cards right */
+.hero-timer-column {
+    min-height: 0;
+    display: flex;
+}
+
+.info-cards-column {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 10px;
+    min-height: 0;
+}
+
+.hero-timer {
+    grid-column: auto;
+    grid-row: auto;
+    flex: 1;
+}
+
+#card-connection,
+#card-free-at,
+#card-remaining,
+#card-today {
+    grid-column: auto;
+    grid-row: auto;
+}
+
+#card-office-arrival {
+    grid-column: auto;
+    grid-row: auto;
+}
+
+/* Connection card: compact horizontal status bar */
+#card-connection.info-card {
+    min-height: auto;
+    padding: 12px 16px;
+}
+
+#card-connection .status-card-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+#card-connection .status-card-label {
+    margin-bottom: 0;
+    font-size: 0.7rem;
+}
+
+#card-connection .status-card-value {
+    font-size: 1.15rem;
+    margin-bottom: 0;
+}
+
+#card-connection .status-card-detail {
+    margin-top: 0;
+    font-size: 0.8rem;
+    opacity: 0.6;
 }
 
 .logo {
@@ -361,16 +463,18 @@ p {
     text-transform: uppercase;
     letter-spacing: 0.12em;
     font-weight: var(--font-semibold);
-    margin-bottom: 0.625rem; /* Ultra-polish: increased from 0.5rem for better scannability */
+    margin-bottom: 0.625rem;
+    opacity: 0.68;
 }
 
 .status-card-value {
     font-size: clamp(1.6rem, 2.4vw, 2rem);
     line-height: var(--leading-tight);
     font-weight: var(--font-semibold);
-    letter-spacing: -0.01em; /* Ultra-polish: tighter cohesion for large numbers */
+    letter-spacing: -0.01em;
     color: var(--text);
-    font-variant-numeric: tabular-nums; /* Elite polish: perfect numeric alignment */
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 #card-session-value,
@@ -380,15 +484,103 @@ p {
 .free-at-time,
 .stat-value,
 .total,
-#start-time {
+#start-time,
+#target-display,
+.elapsed-time,
+.status-card-value {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .status-card-detail {
     margin-top: var(--space-2);
     font-size: var(--text-base);
     color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+/* Info cards - consistent design */
+.info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: stretch;
+    box-shadow: var(--shadow-sm);
+    transition:
+        transform 160ms cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        background-color 160ms ease;
+    min-height: 0;
+}
+
+.info-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+/* Accent borders for visual categorization */
+#card-free-at.info-card,
+#card-remaining.info-card {
+    border-left: 1px solid var(--border);
+}
+
+#card-today.info-card,
+#card-office-arrival.info-card,
+#card-connection.info-card {
+    border-left: 1px solid var(--border);
+}
+
+#card-connection.disconnected.info-card {
+    border-left-color: var(--border);
+}
+
+.info-card .status-card-label {
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: var(--font-semibold);
+    margin-bottom: 0;
+    opacity: 0.56;
+}
+
+.info-card .status-card-value {
+    font-size: clamp(1.72rem, 2.1vw, 2.15rem);
+    font-weight: 640;
+    color: var(--text);
+    margin-bottom: 0;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.status-card-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+}
+
+.info-card .status-card-detail {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    opacity: 0.76;
+}
+
+.info-card .status-card-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
 }
 
 #card-connection.connected .status-card-value {
@@ -399,29 +591,28 @@ p {
     color: var(--error);
 }
 
-/* Elite polish: "Free At" card prominence (most important info) */
+/* "Free At" card prominence (most important info) */
 #card-free-at .status-card-value {
     color: var(--primary);
-    font-weight: var(--font-bold); /* Stand out more */
+    font-weight: var(--font-bold);
 }
 
 /* Remaining time card color coding */
 #card-remaining.progress-low .status-card-value {
-    color: var(--primary);
+    color: color-mix(in srgb, var(--primary) 84%, var(--text-secondary));
 }
 
 #card-remaining.progress-medium .status-card-value {
-    color: var(--warning);
+    color: color-mix(in srgb, var(--warning) 82%, var(--text-secondary));
 }
 
 #card-remaining.progress-high .status-card-value,
 #card-remaining.progress-complete .status-card-value {
-    color: var(--success);
+    color: color-mix(in srgb, var(--success) 86%, var(--text-secondary));
 }
 
 .timer-section {
     padding: var(--space-4);
-    padding-bottom: calc(var(--space-4) + 0.5rem); /* Elite polish: +8px bottom breathing room */
 }
 
 #timer-mode-label {
@@ -461,20 +652,22 @@ p {
 .progress-ring-track,
 .progress-ring-fill {
     fill: none;
-    stroke-width: var(--ring-stroke);
+    stroke-width: 14; /* Hero: Increased authority for larger ring */
 }
 
 .progress-ring-track {
-    stroke: color-mix(in srgb, var(--progress-bg) 20%, transparent); /* Elite polish: near-invisible track (20% opacity) */
+    stroke: color-mix(in srgb, var(--progress-bg) 20%, transparent);
+    opacity: 0.22;
 }
 
 .progress-ring-fill {
-    stroke: color-mix(in srgb, var(--primary) 92%, var(--text)); /* Elite polish: slightly soften intensity */
+    stroke: color-mix(in srgb, var(--primary) 92%, var(--text));
+    stroke-width: 14; /* Hero: Matched confidence */
     stroke-linecap: round;
     stroke-dasharray: 603.19;
     stroke-dashoffset: 603.19;
-    transition: stroke-dashoffset 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: stroke-dashoffset; /* Elite polish: smooth 60fps animation */
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: stroke-dashoffset;
 }
 
 .progress-ring-fill.warning {
@@ -494,24 +687,28 @@ p {
     text-align: center;
     padding: var(--space-3) var(--space-4);
     min-inline-size: 0;
+    white-space: nowrap;
 }
 
 #elapsed-time {
-    font-size: clamp(1.55rem, 2.9vw, 2.35rem);
-    font-weight: 650; /* Ultra-polish: increased from 500 for dominant hierarchy */
-    letter-spacing: -0.02em;
+    font-size: clamp(2rem, 3.9vw, 3.3rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
     line-height: 1;
     color: var(--text);
-    font-variant-numeric: tabular-nums; /* Elite polish: prevent layout shift on timer updates */
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .elapsed-target {
     display: inline-flex;
     align-items: baseline;
     gap: var(--space-2);
-    font-size: clamp(0.95rem, 1.55vw, 1.2rem);
+    font-size: clamp(1.05rem, 1.95vw, 1.55rem);
     color: var(--text-secondary);
-    opacity: 0.60; /* Ultra-polish: clearly secondary to elapsed time */
+    opacity: 0.60;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .elapsed-separator {
@@ -522,6 +719,8 @@ p {
     font-family: var(--font-sans);
     font-weight: var(--font-medium);
     letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .elapsed-percent {
@@ -529,6 +728,70 @@ p {
     color: var(--text-tertiary);
     font-weight: var(--font-medium);
     opacity: 0.50; /* Ultra-polish: subtle tertiary reinforcement */
+}
+
+/* Hero timer styling */
+.hero-timer {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px 8px;
+    position: relative;
+    border-radius: var(--radius);
+}
+
+.hero-timer::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 14px 36px rgba(0,0,0,0.16);
+    opacity: 0.52;
+}
+
+.hero-timer .timer-ring-wrap {
+    --ring-size: clamp(335px, 62vh, 560px);
+}
+
+.hero-timer .timer-ring-layout {
+    transform: translateY(12px);
+}
+
+.hero-timer .elapsed-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    white-space: nowrap;
+}
+
+.hero-timer .elapsed-time {
+    font-size: clamp(2.2rem, 4.5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.elapsed-time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.hero-timer .elapsed-target {
+    font-size: clamp(1.2rem, 2.2vw, 1.5rem);
+    color: var(--text-secondary);
+    font-weight: var(--font-medium);
+    font-variant-numeric: tabular-nums;
 }
 
 .elapsed-display.progress-low #elapsed-time {
@@ -618,14 +881,17 @@ p {
 }
 
 .contextual-message {
-    margin-top: var(--space-4); /* Elite polish: increased from var(--space-2) for better top spacing */
+    margin-top: auto;
+    flex-shrink: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface-muted);
-    padding: var(--space-3);
-    font-size: var(--text-base);
-    color: var(--text-secondary);
+    padding: var(--space-2) var(--space-4);
+    font-size: 0.82rem;
+    color: var(--text-tertiary);
     text-align: center;
+    letter-spacing: 0.02em;
+    font-weight: var(--font-medium);
 }
 
 .contextual-message:empty {
@@ -651,13 +917,13 @@ p {
 }
 
 .completion {
-    margin-top: var(--space-2);
+    margin-top: 0;
     border-radius: var(--radius-sm);
     border: 1px solid color-mix(in srgb, var(--success) 38%, var(--border));
     background: color-mix(in srgb, var(--success) 10%, transparent);
     color: var(--success);
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--text-base);
+    padding: var(--space-2);
+    font-size: 0.875rem;
     text-align: center;
 }
 
@@ -700,18 +966,81 @@ p {
 }
 
 #tab-live {
-    display: grid;
-    grid-template-rows: auto auto 1fr;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-3);
-    min-block-size: 0;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
+}
+
+#tab-live .out-of-office-panel {
+    flex: 1;
+    min-height: 0;
+}
+
+.out-of-office-panel {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    padding: clamp(1.5rem, 4vh, 3rem);
+    text-align: center;
+}
+
+#tab-live.out-of-office-state .out-of-office-panel {
+    display: flex;
+}
+
+#tab-live.out-of-office-state .main-content-grid,
+#tab-live.out-of-office-state .contextual-message,
+#tab-live.out-of-office-state .completion {
+    display: none;
+}
+
+.out-of-office-title {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(2rem, 4.4vw, 3.6rem);
+    font-weight: var(--font-bold);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.out-of-office-subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: clamp(1rem, 1.45vw, 1.3rem);
+    line-height: 1.45;
+    max-inline-size: 48ch;
+    display: grid;
+    gap: 0.25rem;
+}
+
+.out-of-office-line {
+    display: block;
+}
+
+.out-of-office-wifi-current {
+    color: color-mix(in srgb, var(--error) 88%, var(--text));
+    font-weight: var(--font-semibold);
+}
+
+.out-of-office-wifi-target {
+    color: color-mix(in srgb, var(--success) 90%, var(--text));
+    font-weight: var(--font-semibold);
 }
 
 #tab-live.hidden {
     display: none;
 }
 
-#tab-live .timer-section {
+#tab-live .timer-section:not(.hero-timer) {
     display: grid;
     grid-template-rows: auto auto auto auto auto auto;
     align-content: start;
@@ -868,6 +1197,8 @@ tbody tr:hover td {
 .sync-status {
     color: var(--text-secondary);
     font-size: var(--text-sm);
+    margin: 0;
+    padding: 0;
 }
 
 .sync-status.error {
@@ -900,9 +1231,47 @@ button:focus-visible,
 
 @media (max-width: 980px) {
     .dashboard {
-        block-size: auto;
-        min-block-size: 100dvh;
+        height: auto;
+        min-height: 100vh;
         overflow: visible;
+        padding: var(--space-3) var(--space-4);
+    }
+
+    .main-content-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto auto;
+    }
+
+    /* Undo display: contents for tablet */
+    .hero-timer-column {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        grid-column: 1 / -1;
+        padding: var(--space-3);
+    }
+
+    .info-cards-column {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-column: 1 / -1;
+        gap: var(--space-3);
+    }
+
+    /* Reset card placements for tablet */
+    .hero-timer { grid-column: auto; grid-row: auto; }
+    #card-connection { grid-column: 1 / -1; }
+    #card-free-at,
+    #card-remaining,
+    #card-today,
+    #card-office-arrival { grid-column: auto; grid-row: auto; }
+
+    .hero-timer .timer-ring-wrap {
+        --ring-size: min(70vw, 250px);
+    }
+
+    .hero-timer {
+        padding: var(--space-3);
     }
 
     .status-cards-grid,
@@ -922,7 +1291,7 @@ button:focus-visible,
 
     .timer-section {
         padding: var(--space-4);
-        padding-bottom: calc(var(--space-4) + 0.5rem); /* Elite polish: maintain bottom breathing on mobile */
+        padding-bottom: calc(var(--space-4) + 0.5rem);
     }
 
     .tab-content {
@@ -937,16 +1306,34 @@ button:focus-visible,
 @media (max-width: 640px) {
     .dashboard {
         padding-inline: var(--space-3);
-        gap: var(--space-4);
+        gap: var(--space-3);
     }
 
     .card {
         padding: var(--space-4);
-        margin-bottom: var(--space-4);
+        margin-bottom: var(--space-3);
+    }
+
+    .main-content-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+
+    .info-cards-column {
+        grid-template-columns: 1fr;
+    }
+
+    #card-connection,
+    #card-free-at,
+    #card-remaining,
+    #card-today,
+    #card-office-arrival {
+        grid-column: 1;
+        grid-row: auto;
     }
 
     .status-card {
-        min-height: 124px;
+        min-height: auto;
         padding: var(--space-4);
     }
 
@@ -954,28 +1341,27 @@ button:focus-visible,
         font-size: 1.7rem;
     }
 
-    /* Ultra-polish: Mobile ring stroke (lighter on small screens) */
     :root {
         --ring-stroke: 8;
     }
 
     .timer-ring-wrap {
-        --ring-size: min(84vw, 280px); /* Ultra-polish: increased from 264px for better optical balance */
+        --ring-size: min(84vw, 300px);
     }
 
     #elapsed-time {
         font-size: clamp(1.8rem, 10vw, 2.75rem);
-        font-weight: 650; /* Ultra-polish: maintain dominant weight on mobile */
+        font-weight: 650;
     }
 
     .elapsed-target {
         font-size: clamp(1rem, 5vw, 1.3rem);
-        opacity: 0.60; /* Ultra-polish: maintain hierarchy on mobile */
+        opacity: 0.60;
     }
 
     .elapsed-percent {
-        font-size: 0.8125rem; /* Ultra-polish: maintain tertiary size on mobile */
-        opacity: 0.50; /* Ultra-polish: maintain tertiary hierarchy on mobile */
+        font-size: 0.8125rem;
+        opacity: 0.50;
     }
 
     .timer-countdown,
@@ -1002,37 +1388,64 @@ button:focus-visible,
 /* Compact desktop mode: keep Live dashboard on one screen-height without scrolling */
 @media (min-width: 981px) and (max-height: 940px) {
     .card {
-        padding: var(--space-3);
+        padding: var(--space-2);
     }
 
-    .status-cards-grid {
-        margin-bottom: var(--space-3);
+    .dashboard {
+        padding: var(--space-2) var(--space-3);
+        gap: var(--space-1);
+    }
+
+    .main-content-grid {
+        gap: 10px;
+        grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
+    }
+
+    .info-cards-column {
+        gap: 8px;
     }
 
     .status-card {
-        min-height: 98px;
+        min-height: auto;
+    }
+
+    .info-card {
+        padding: 10px 12px;
     }
 
     .status-card-value {
-        font-size: clamp(1.25rem, 1.7vw, 1.5rem);
+        font-size: clamp(1.15rem, 1.45vw, 1.35rem);
+    }
+
+    .info-card .status-card-label {
+        margin-bottom: 0.25rem;
     }
 
     .timer-section {
-        padding: var(--space-3);
-        padding-bottom: calc(var(--space-3) + 0.5rem); /* Elite polish: maintain bottom breathing in compact mode */
+        padding: var(--space-2);
     }
 
-    .timer-ring-wrap {
-        --ring-size: min(26vh, 224px); /* Ultra-polish: increased for better optical balance in compact mode */
+    .hero-timer {
+        padding: 10px 12px;
     }
+
+    .hero-timer .timer-ring-wrap {
+        --ring-size: clamp(286px, 46vh, 420px);
+    }
+
+    .hero-timer .timer-ring-layout {
+        transform: translateY(8px);
+    }
+
+    /* hero-timer-column is a flex container on desktop */
 
     #elapsed-time {
-        font-size: clamp(1.4rem, 2.5vw, 2rem);
-        font-weight: 650; /* Ultra-polish: maintain dominant weight in compact mode */
+        font-size: clamp(2.2rem, 3.6vw, 3.2rem);
+        font-weight: 700;
     }
 
     .elapsed-target {
-        font-size: clamp(0.86rem, 1.2vw, 1rem);
+        font-size: clamp(1.1rem, 1.65vw, 1.55rem);
     }
 
     .timer-countdown,
@@ -1044,6 +1457,14 @@ button:focus-visible,
     .contextual-message {
         padding: var(--space-2) var(--space-3);
         font-size: var(--text-sm);
+    }
+
+    #card-connection.info-card {
+        padding: 10px 12px;
+    }
+
+    #card-connection .status-card-value {
+        font-size: 0.95rem;
     }
 }
 
@@ -1359,4 +1780,3 @@ button:focus-visible,
         font-size: 1.25rem;
     }
 }
-

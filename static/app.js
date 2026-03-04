@@ -60,6 +60,11 @@
         todayTotalDisplay: null,
         notificationBadge: null,
         tabLive: null,
+        mainContentGrid: null,
+        outOfOfficePanel: null,
+        outOfOfficeSubtitle: null,
+        outOfOfficeCurrentSsid: null,
+        outOfOfficeOfficeSsid: null,
         tabToday: null,
         tabWeekly: null,
         weeklyTableBody: null,
@@ -149,6 +154,11 @@
         dom.notificationBadge = document.getElementById("notification-status-badge");
 
         dom.tabLive = document.getElementById("tab-live");
+        dom.mainContentGrid = document.querySelector("#tab-live .main-content-grid");
+        dom.outOfOfficePanel = document.getElementById("out-of-office-panel");
+        dom.outOfOfficeSubtitle = document.getElementById("out-of-office-subtitle");
+        dom.outOfOfficeCurrentSsid = document.getElementById("out-of-office-current-ssid");
+        dom.outOfOfficeOfficeSsid = document.getElementById("out-of-office-office-ssid");
         dom.tabToday = document.getElementById("tab-today");
         dom.tabWeekly = document.getElementById("tab-weekly");
 
@@ -186,9 +196,10 @@
         // Task 7.4: Timer section for celebration animation
         dom.timerSection = document.querySelector(".timer-section");
 
-        // Arrival section
-        dom.arrivalSection = document.getElementById("arrival-section");
-        dom.arrivalTime = document.getElementById("arrival-time");
+        // Office arrival card
+        dom.cardOfficeArrival = document.getElementById("card-office-arrival");
+        dom.cardOfficeArrivalValue = document.getElementById("card-office-arrival-value");
+        dom.cardOfficeArrivalDetail = document.getElementById("card-office-arrival-detail");
 
         // Task 7.6: Dark mode toggle
         dom.themeToggle = document.getElementById("theme-toggle");
@@ -906,7 +917,7 @@
 
     function formatIst12HourTime(date) {
         if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
-            return "--:--:-- -- IST";
+            return "--:--:--";
         }
         const formatted = date.toLocaleTimeString("en-IN", {
             timeZone: "Asia/Kolkata",
@@ -915,7 +926,7 @@
             second: "2-digit",
             hour12: true,
         });
-        return `${formatted} IST`;
+        return formatted;
     }
 
     function parseTargetDisplayToSeconds(targetDisplay) {
@@ -1011,15 +1022,15 @@
         }
 
         if (!sessionActive) {
-            dom.freeAtLabel.textContent = "You can leave at (IST):";
-            dom.freeAtTime.textContent = "--:--:-- -- IST";
+            dom.freeAtLabel.textContent = "You can leave at:";
+            dom.freeAtTime.textContent = "--:--:--";
             return;
         }
 
         if (completed) {
-            dom.freeAtLabel.textContent = "Target completed at (IST):";
+            dom.freeAtLabel.textContent = "Target completed at:";
         } else {
-            dom.freeAtLabel.textContent = "You can leave at (IST):";
+            dom.freeAtLabel.textContent = "You can leave at:";
         }
 
         const backendTime = state.status && typeof state.status.target_completion_time_ist === "string"
@@ -1114,7 +1125,7 @@
             return;
         }
         try {
-            new Notification("DailyFour", {
+            new Notification("ThreeFour", {
                 body: "4-hour target reached (including buffer). You're all set!",
             });
         } catch (err) {
@@ -1165,6 +1176,57 @@
         return 0;
     }
 
+    function isOutOfOffice() {
+        if (!state.status) {
+            return false;
+        }
+        // Backend sets `connected=true` only when current SSID matches the office Wi-Fi from .env.
+        return !Boolean(state.status.connected);
+    }
+
+    function renderLiveViewState() {
+        const outOfOffice = isOutOfOffice();
+
+        if (dom.tabLive) {
+            dom.tabLive.classList.toggle("out-of-office-state", outOfOffice);
+        }
+
+        if (dom.mainContentGrid) {
+            dom.mainContentGrid.classList.toggle("hidden", outOfOffice);
+        }
+
+        if (dom.contextualMessage) {
+            dom.contextualMessage.classList.toggle("hidden", outOfOffice);
+        }
+
+        if (dom.completionBanner && outOfOffice) {
+            dom.completionBanner.classList.add("hidden");
+        }
+
+        if (dom.outOfOfficePanel) {
+            dom.outOfOfficePanel.classList.toggle("hidden", !outOfOffice);
+
+            if (outOfOffice && dom.outOfOfficeSubtitle) {
+                const officeWifi = typeof window.OFFICE_WIFI_NAME === "string"
+                    ? window.OFFICE_WIFI_NAME.trim()
+                    : "";
+                const currentSsid = state.status && typeof state.status.ssid === "string"
+                    ? state.status.ssid.trim()
+                    : "";
+
+                if (dom.outOfOfficeCurrentSsid) {
+                    dom.outOfOfficeCurrentSsid.textContent = currentSsid || "Not connected";
+                }
+
+                if (dom.outOfOfficeOfficeSsid) {
+                    dom.outOfOfficeOfficeSsid.textContent = officeWifi || "Office Wi-Fi";
+                }
+            }
+        }
+
+        return outOfOffice;
+    }
+
     function renderConnection() {
         if (!state.status) {
             return;
@@ -1206,17 +1268,21 @@
             dom.cardConnectionDetail.textContent = ssid;
         }
 
-        // Arrival time display (Enhancement 2)
-        if (dom.arrivalSection && dom.arrivalTime && state.today && state.today.sessions && state.today.sessions.length > 0) {
-            const firstSession = state.today.sessions[0];
-            if (firstSession.start_time) {
-                dom.arrivalTime.textContent = firstSession.start_time;
-                dom.arrivalSection.style.display = "block";
+        // Card 4: Office Arrival Time
+        if (dom.cardOfficeArrivalValue && dom.cardOfficeArrivalDetail) {
+            if (state.today && state.today.sessions && state.today.sessions.length > 0) {
+                const firstSession = state.today.sessions[0];
+                if (firstSession.start_time) {
+                    dom.cardOfficeArrivalValue.textContent = firstSession.start_time.replace(' IST', '');
+                    dom.cardOfficeArrivalDetail.textContent = "First login today";
+                } else {
+                    dom.cardOfficeArrivalValue.textContent = "--:--:--";
+                    dom.cardOfficeArrivalDetail.textContent = "No session data";
+                }
             } else {
-                dom.arrivalSection.style.display = "none";
+                dom.cardOfficeArrivalValue.textContent = "--:--:--";
+                dom.cardOfficeArrivalDetail.textContent = "Waiting for data";
             }
-        } else if (dom.arrivalSection) {
-            dom.arrivalSection.style.display = "none";
         }
 
         // Card 2: Free At (when you can leave)
@@ -1227,14 +1293,14 @@
             } else if (completed) {
                 // Show when target was completed
                 const backendTime = state.status.target_completion_time_ist || "";
-                dom.cardFreeAtValue.textContent = backendTime || "Completed";
+                dom.cardFreeAtValue.textContent = backendTime.replace(' IST', '') || "Completed";
                 dom.cardFreeAtDetail.textContent = "Target completed";
             } else {
                 // Calculate and show when you can leave
                 const backendTime = state.status.target_completion_time_ist || "";
                 if (backendTime.trim()) {
                     // Use backend-provided time (more accurate)
-                    dom.cardFreeAtValue.textContent = backendTime;
+                    dom.cardFreeAtValue.textContent = backendTime.replace(' IST', '');
                 } else {
                     // Calculate from remaining seconds
                     const safeRemaining = Math.max(0, toInt(remainingSeconds, 0));
@@ -1263,7 +1329,7 @@
             const personalLeaveAt = fromToday.trim() || fromStatus.trim();
 
             if (personalLeaveAt) {
-                dom.cardTodayValue.textContent = personalLeaveAt;
+                dom.cardTodayValue.textContent = personalLeaveAt.replace(' IST', '');
                 dom.cardTodayDetail.textContent = "Fixed from first office login";
             } else {
                 const startTimeText = state.status && typeof state.status.start_time === "string"
@@ -1286,10 +1352,10 @@
                     typeof state.status.target_completion_time_ist === "string" &&
                     state.status.target_completion_time_ist.trim()
                 ) {
-                    dom.cardTodayValue.textContent = state.status.target_completion_time_ist;
+                    dom.cardTodayValue.textContent = state.status.target_completion_time_ist.replace(' IST', '');
                     dom.cardTodayDetail.textContent = "From active timer";
                 } else {
-                    dom.cardTodayValue.textContent = "--:--:-- -- IST";
+                    dom.cardTodayValue.textContent = "--:--:--";
                     dom.cardTodayDetail.textContent = "No office session today";
                 }
             }
@@ -1366,6 +1432,10 @@
 
     function renderTimer() {
         if (!state.status) {
+            return;
+        }
+
+        if (renderLiveViewState()) {
             return;
         }
 
@@ -1459,6 +1529,7 @@
     // Task 7.5: Render contextual insights & messaging
     function renderContextualMessage() {
         if (!dom.contextualMessage) return;
+        if (isOutOfOffice()) return;
 
         const isConnected = state.status && Boolean(state.status.connected);
         const sessionActive = state.status && Boolean(state.status.session_active);
@@ -1538,7 +1609,7 @@
                     second: "2-digit",
                     hour12: true,
                 });
-                message = `Good morning. At this pace, you'll reach your goal by ${etaStr} IST.`;
+                message = `Good morning. At this pace, you'll reach your goal by ${etaStr}.`;
             } else if (hour < 17) {
                 message = "Afternoon progress. Keep it up.";
             } else {
@@ -1658,8 +1729,13 @@
     function renderAll() {
         renderConnection();
         renderStartTime();
-        renderTimer();
         renderTodaySessions();
+
+        if (renderLiveViewState()) {
+            return;
+        }
+
+        renderTimer();
         renderStatusCards(); // Task 7.2
         renderContextualMessage(); // Task 7.5
     }
@@ -1961,7 +2037,7 @@
         }
     }
 
-    // Parse various time formats and convert to HH:MM:SS AM/PM IST
+    // Parse various time formats and convert to HH:MM:SS AM/PM
     function parseAndFormatTime(input) {
         input = input.trim();
 
@@ -1972,7 +2048,7 @@
             const minute = match[2];
             const second = match[3] || "00";
             const ampm = match[4].toUpperCase();
-            return `${hour}:${minute}:${second} ${ampm} IST`;
+            return `${hour}:${minute}:${second} ${ampm}`;
         }
 
         // Pattern 2: HH:MM (assume AM/PM based on hour, or default to 24-hour)
@@ -1985,13 +2061,13 @@
             if (hour > 12) {
                 const ampm = "PM";
                 hour = hour - 12;
-                return `${hour.toString().padStart(2, "0")}:${minute}:00 ${ampm} IST`;
+                return `${hour.toString().padStart(2, "0")}:${minute}:00 ${ampm}`;
             } else if (hour === 0) {
-                return `12:${minute}:00 AM IST`;
+                return `12:${minute}:00 AM`;
             } else {
                 // Ambiguous - let's ask or default to PM for work hours
                 const ampm = hour < 8 ? "AM" : (hour === 12 ? "PM" : "AM");
-                return `${hour.toString().padStart(2, "0")}:${minute}:00 ${ampm} IST`;
+                return `${hour.toString().padStart(2, "0")}:${minute}:00 ${ampm}`;
             }
         }
 
@@ -2005,11 +2081,11 @@
             if (hour >= 12) {
                 const ampm = "PM";
                 if (hour > 12) hour = hour - 12;
-                return `${hour.toString().padStart(2, "0")}:${minute}:${second} ${ampm} IST`;
+                return `${hour.toString().padStart(2, "0")}:${minute}:${second} ${ampm}`;
             } else if (hour === 0) {
-                return `12:${minute}:${second} AM IST`;
+                return `12:${minute}:${second} AM`;
             } else {
-                return `${hour.toString().padStart(2, "0")}:${minute}:${second} AM IST`;
+                return `${hour.toString().padStart(2, "0")}:${minute}:${second} AM`;
             }
         }
 
