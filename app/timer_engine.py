@@ -285,9 +285,11 @@ async def timer_polling_loop() -> None:
                     f"Timer detected stale active session from {date} (today: {today_date}). "
                     "Force-closing..."
                 )
+                # Use last activity as logical end time for the stale session
+                last_activity = doc.get("last_activity") or now_utc()
                 await store.end_session(
                     date=date,
-                    end_time=now_utc(),
+                    end_time=last_activity,
                     final_minutes=total_minutes
                 )
                 logger.info(f"Stale session from {date} force-closed by timer")

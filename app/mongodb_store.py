@@ -154,7 +154,7 @@ class MongoDBStore:
         Returns:
             UpdateResult
         """
-        first_session_start = format_time_ist(start_time, "%I:%M:%S %p IST")
+        first_session_start = format_time_ist(start_time, "%I:%M:%S %p")
         result = await self.db.daily_sessions.update_one(
             {"date": date},
             [
