@@ -146,7 +146,7 @@ async def test_grace_period_start(session_manager, mongo_store, test_date):
         doc = await mongo_store.get_daily_status(test_date)
         assert doc is not None
         assert doc["grace_period_start"] is not None
-        assert doc["is_active"] is True  # Still active during grace period
+        assert doc["is_active"] is False  # Now marked inactive immediately for reliability
 
         # Clean up grace period task
         if session_manager._grace_period_task:

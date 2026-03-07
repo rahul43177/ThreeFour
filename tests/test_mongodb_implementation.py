@@ -54,6 +54,9 @@ async def test_create_daily_session():
         assert doc["total_minutes"] == 0
         assert doc["completed_4h"] is False
         assert doc["is_active"] is False
+        assert doc.get("pre_leave_email_sent_at") is None
+        assert doc.get("completion_email_sent_at") is None
+        assert doc.get("completion_desktop_sent_at") is None
 
         # Clean up
         await store.db.daily_sessions.delete_one({"date": date})
@@ -225,6 +228,97 @@ async def test_mark_completed():
 
 
 @pytest.mark.asyncio
+async def test_notification_flag_markers_and_reset():
+    """Notification sent markers should be set and reset correctly."""
+    store = MongoDBStore(settings.mongodb_uri, settings.mongodb_database)
+    await _connect_store_or_skip(store)
+
+    try:
+        date = "15-02-2026-TEST-NOTIFY"
+        ssid = "TEST_WIFI"
+        sent_at = datetime.now(UTC)
+
+        await store.get_or_create_daily_session(date, ssid, 250)
+
+        updated = await store.mark_pre_leave_email_sent(date, sent_at)
+        assert updated is True
+        doc = await store.get_daily_status(date)
+        assert doc.get("pre_leave_email_sent_at") is not None
+
+        updated = await store.mark_completion_email_sent(date, sent_at)
+        assert updated is True
+        doc = await store.get_daily_status(date)
+        assert doc.get("completion_email_sent_at") is not None
+
+        updated = await store.mark_completion_desktop_sent(date, sent_at)
+        assert updated is True
+        doc = await store.get_daily_status(date)
+        assert doc.get("completion_desktop_sent_at") is not None
+
+        reset_done = await store.reset_notification_flags(date)
+        assert reset_done is True
+        doc = await store.get_daily_status(date)
+        assert doc.get("pre_leave_email_sent_at") is None
+        assert doc.get("completion_email_sent_at") is None
+        assert doc.get("completion_desktop_sent_at") is None
+
+        await store.db.daily_sessions.delete_one({"date": date})
+        print("✅ Notification marker lifecycle test passed")
+
+    finally:
+        await store.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_notification_markers_work_for_legacy_docs_without_fields():
+    """Missing legacy notification fields should be treated as unsent (None)."""
+    store = MongoDBStore(settings.mongodb_uri, settings.mongodb_database)
+    await _connect_store_or_skip(store)
+
+    try:
+        date = "15-02-2026-TEST-LEGACY-NOTIFY"
+        sent_at = datetime.now(UTC)
+
+        # Simulate an old record created before notification sent flags existed.
+        await store.db.daily_sessions.insert_one(
+            {
+                "date": date,
+                "ssid": "TEST_WIFI",
+                "total_minutes": 0,
+                "completed_4h": False,
+                "target_minutes": 250,
+                "is_active": False,
+                "sessions_count": 0,
+                "paused_duration_minutes": 0,
+                "session_start_total_minutes": 0,
+                "session_start_paused_minutes": 0,
+                "grace_period_minutes": 2,
+                "grace_period_start": None,
+                "has_network_access": True,
+                "paused_at": None,
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC),
+            }
+        )
+
+        doc = await store.get_daily_status(date)
+        assert doc.get("pre_leave_email_sent_at") is None
+        assert doc.get("completion_email_sent_at") is None
+        assert doc.get("completion_desktop_sent_at") is None
+
+        updated = await store.mark_pre_leave_email_sent(date, sent_at)
+        assert updated is True
+        doc = await store.get_daily_status(date)
+        assert doc.get("pre_leave_email_sent_at") is not None
+
+        await store.db.daily_sessions.delete_one({"date": date})
+        print("✅ Legacy notification field compatibility test passed")
+
+    finally:
+        await store.disconnect()
+
+
+@pytest.mark.asyncio
 async def test_network_checker_internet_access():
     """Test network connectivity checker"""
     checker = NetworkConnectivityChecker()
@@ -308,6 +402,8 @@ if __name__ == "__main__":
     asyncio.run(test_grace_period())
     asyncio.run(test_network_connectivity_pause_resume())
     asyncio.run(test_mark_completed())
+    asyncio.run(test_notification_flag_markers_and_reset())
+    asyncio.run(test_notification_markers_work_for_legacy_docs_without_fields())
     asyncio.run(test_network_checker_internet_access())
     asyncio.run(test_cumulative_tracking_scenario())
 

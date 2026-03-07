@@ -11,10 +11,12 @@ Key Changes:
 import asyncio
 import logging
 from datetime import datetime, timedelta, UTC
+from html import escape
 from typing import Any, Optional
 
 from app.config import settings
 from app.notifier import send_notification
+from app.email_notifier import send_email_notification
 from app.mongodb_store import MongoDBStore
 from app.timezone_utils import now_utc, format_time_ist
 
@@ -228,19 +230,209 @@ def _compute_running_total_minutes(doc: dict, now: Optional[datetime] = None) ->
     return session_start_total_minutes + effective_session_minutes
 
 
+def _normalize_utc_datetime(value: Any) -> Optional[datetime]:
+    """Normalize MongoDB datetime values to timezone-aware UTC."""
+    if not isinstance(value, datetime):
+        return None
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
+def _resolve_session_start_utc(doc: dict[str, Any]) -> Optional[datetime]:
+    """Resolve the best available session start timestamp for messaging."""
+    return _normalize_utc_datetime(
+        doc.get("first_session_start_utc") or doc.get("current_session_start")
+    )
+
+
+def _format_ist_time(dt: Optional[datetime]) -> str:
+    """Format datetime to user-facing IST time with timezone suffix."""
+    if dt is None:
+        return "N/A"
+    return format_time_ist(dt, "%I:%M:%S %p IST")
+
+
+def _build_pre_leave_email_message(
+    doc: dict[str, Any],
+    *,
+    total_minutes: int,
+    target_minutes: int,
+) -> str:
+    """Build the 10-minute pre-leave email body."""
+    start_utc = _resolve_session_start_utc(doc)
+    start_display = _format_ist_time(start_utc)
+    duration_display = format_time_display(timedelta(minutes=max(0, total_minutes)))
+
+    leave_time_utc = (
+        start_utc + timedelta(minutes=target_minutes)
+        if start_utc is not None
+        else now_utc() + timedelta(minutes=max(0, target_minutes - total_minutes))
+    )
+    leave_time_display = _format_ist_time(leave_time_utc)
+
+    return (
+        f"Came office at / Start time: {start_display}\n"
+        f"Duration complete: {duration_display}\n"
+        f"You can leave in 10 mins with end time: {leave_time_display}"
+    )
+
+
+def _build_email_html(
+    *,
+    title: str,
+    subtitle: str,
+    badge_text: str,
+    badge_bg: str,
+    badge_fg: str,
+    rows: list[tuple[str, str]],
+    footer: str,
+) -> str:
+    """Build a minimal premium HTML email with inline styles for broad compatibility."""
+    escaped_rows = [
+        (escape(label), escape(value))
+        for label, value in rows
+    ]
+    row_html = "".join(
+        (
+            "<tr>"
+            f"<td style=\"padding:10px 0;color:#6b7280;font-size:13px;"
+            "font-weight:500;border-bottom:1px solid #eef2f7;\">"
+            f"{label}</td>"
+            f"<td style=\"padding:10px 0;color:#111827;font-size:14px;text-align:right;"
+            "font-weight:600;border-bottom:1px solid #eef2f7;\">"
+            f"{value}</td>"
+            "</tr>"
+        )
+        for label, value in escaped_rows
+    )
+
+    return f"""\
+<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#f5f7fb;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+            <tr>
+              <td style="padding:24px 24px 14px;">
+                <div style="color:#6b7280;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;">Office Wi-Fi Tracker</div>
+                <h1 style="margin:10px 0 8px;color:#111827;font-size:22px;line-height:1.3;">{escape(title)}</h1>
+                <p style="margin:0 0 14px;color:#4b5563;font-size:14px;line-height:1.6;">{escape(subtitle)}</p>
+                <span style="display:inline-block;padding:6px 12px;border-radius:999px;background:{badge_bg};color:{badge_fg};font-size:12px;font-weight:600;">{escape(badge_text)}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 8px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  {row_html}
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 24px 22px;color:#6b7280;font-size:12px;line-height:1.6;">
+                {escape(footer)}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+
+def _build_pre_leave_email_html(
+    doc: dict[str, Any],
+    *,
+    total_minutes: int,
+    target_minutes: int,
+) -> str:
+    """Build styled HTML for pre-leave email."""
+    start_utc = _resolve_session_start_utc(doc)
+    start_display = _format_ist_time(start_utc)
+    duration_display = format_time_display(timedelta(minutes=max(0, total_minutes)))
+    leave_time_utc = (
+        start_utc + timedelta(minutes=target_minutes)
+        if start_utc is not None
+        else now_utc() + timedelta(minutes=max(0, target_minutes - total_minutes))
+    )
+    leave_time_display = _format_ist_time(leave_time_utc)
+
+    return _build_email_html(
+        title="10 minutes to leave",
+        subtitle="You are close to completing today’s tracked target.",
+        badge_text="Pre-leave reminder",
+        badge_bg="#fff7ed",
+        badge_fg="#b45309",
+        rows=[
+            ("Came office at / Start time", start_display),
+            ("Duration complete", duration_display),
+            ("Leave in 10 mins (end time)", leave_time_display),
+        ],
+        footer="This is an automated reminder from your Office Wi-Fi Tracker.",
+    )
+
+
+def _build_completion_email_message(
+    doc: dict[str, Any],
+    *,
+    total_minutes: int,
+    completed_at_utc: datetime,
+) -> str:
+    """Build the completion email body."""
+    start_utc = _resolve_session_start_utc(doc)
+    start_display = _format_ist_time(start_utc)
+    duration_display = format_time_display(timedelta(minutes=max(0, total_minutes)))
+    completed_display = _format_ist_time(completed_at_utc)
+
+    return (
+        f"Came office at / Start time: {start_display}\n"
+        f"Duration complete: {duration_display}\n"
+        f"Target completed at: {completed_display}"
+    )
+
+
+def _build_completion_email_html(
+    doc: dict[str, Any],
+    *,
+    total_minutes: int,
+    completed_at_utc: datetime,
+) -> str:
+    """Build styled HTML for completion email."""
+    start_utc = _resolve_session_start_utc(doc)
+    start_display = _format_ist_time(start_utc)
+    duration_display = format_time_display(timedelta(minutes=max(0, total_minutes)))
+    completed_display = _format_ist_time(completed_at_utc)
+
+    return _build_email_html(
+        title="Target completed",
+        subtitle="Your configured office session target has been completed.",
+        badge_text="Completed",
+        badge_bg="#ecfdf3",
+        badge_fg="#166534",
+        rows=[
+            ("Came office at / Start time", start_display),
+            ("Duration complete", duration_display),
+            ("Target completed at", completed_display),
+        ],
+        footer="You can now wrap up and leave when ready.",
+    )
+
+
 async def timer_polling_loop() -> None:
     """
     Background loop that monitors cumulative daily timer progress.
 
-    New Behavior:
+    Behavior:
     - Monitors MongoDB for active session
     - Updates cumulative total_minutes periodically
     - Respects paused state (network connectivity)
-    - Detects 4-hour completion
-    - Sends notification once per day when target reached
+    - Sends one pre-leave email in the last 10 minutes
+    - Sends completion desktop + email alerts at target completion
+    - Uses MongoDB sent flags to dedupe across restarts
     """
     interval = _normalize_interval_seconds(settings.timer_check_interval_seconds)
-    notified_date: Optional[str] = None
     target_minutes = _resolve_target_minutes()
 
     logger.info(f"Timer polling started — interval: {interval}s, target: {target_minutes} min")
@@ -254,7 +446,6 @@ async def timer_polling_loop() -> None:
 
             current_ssid = get_current_ssid(use_cache=True)
             if not is_office_ssid(current_ssid):
-                notified_date = None
                 logger.debug("Timer check skipped: not on configured office Wi-Fi")
                 continue
 
@@ -268,14 +459,20 @@ async def timer_polling_loop() -> None:
 
             if not doc:
                 logger.debug("Timer check skipped: no active session")
-                notified_date = None
                 continue
 
             date = doc.get("date")
+            if not isinstance(date, str) or not date.strip():
+                logger.warning("Timer check skipped: session document missing valid date")
+                continue
+
             is_active = doc.get("is_active", False)
             has_network = doc.get("has_network_access", True)
-            completed_4h = doc.get("completed_4h", False)
+            completed_4h = bool(doc.get("completed_4h", False))
             total_minutes = _safe_int_minutes(doc.get("total_minutes", 0))
+            pre_leave_email_sent_at = doc.get("pre_leave_email_sent_at")
+            completion_email_sent_at = doc.get("completion_email_sent_at")
+            completion_desktop_sent_at = doc.get("completion_desktop_sent_at")
 
             # BUGFIX: Force-close stale sessions from previous days
             from app.timezone_utils import get_today_date_ist
@@ -285,13 +482,14 @@ async def timer_polling_loop() -> None:
                     f"Timer detected stale active session from {date} (today: {today_date}). "
                     "Force-closing..."
                 )
+                # Use last activity as logical end time for the stale session
+                last_activity = doc.get("last_activity") or now_utc()
                 await store.end_session(
                     date=date,
-                    end_time=now_utc(),
+                    end_time=last_activity,
                     final_minutes=total_minutes
                 )
                 logger.info(f"Stale session from {date} force-closed by timer")
-                notified_date = None
                 continue
 
             if not is_active:
@@ -340,26 +538,72 @@ async def timer_polling_loop() -> None:
                 # Mark as completed in MongoDB
                 await store.mark_completed(date)
                 logger.info(f"Daily goal completed for {date} - Total: {total_minutes} min")
-
-                # Update doc
-                doc = await store.get_daily_status(date)
                 completed_4h = True
 
-            # Send notification once per day
-            if completed_4h and date != notified_date:
-                title = "Office Wi-Fi Tracker"
-                if _is_enabled_test_mode(settings.test_mode):
-                    message = f"Test mode: {target_minutes} min completed. You may leave."
-                else:
-                    hours = settings.work_duration_hours
-                    buffer = settings.buffer_minutes
-                    message = (
-                        f"{hours} hours + {buffer} min buffer completed. "
-                        f"You may leave."
+            # Send one pre-leave email once remaining time enters <= 10 minutes window.
+            if (
+                0 < remaining_minutes <= 10
+                and pre_leave_email_sent_at is None
+            ):
+                pre_subject = "WiFi Tracker: 10 minutes to leave"
+                pre_message = _build_pre_leave_email_message(
+                    doc,
+                    total_minutes=total_minutes,
+                    target_minutes=target_minutes,
+                )
+                pre_html = _build_pre_leave_email_html(
+                    doc,
+                    total_minutes=total_minutes,
+                    target_minutes=target_minutes,
+                )
+                pre_sent = await asyncio.to_thread(
+                    send_email_notification,
+                    pre_subject,
+                    pre_message,
+                    pre_html,
+                )
+                if pre_sent:
+                    sent_at = now_utc()
+                    await store.mark_pre_leave_email_sent(date, sent_at)
+                    pre_leave_email_sent_at = sent_at
+                    logger.info("Pre-leave email sent for %s", date)
+
+            # Send completion notifications, deduped by persisted sent flags.
+            if completed_4h:
+                completed_at = now_utc()
+                completion_subject = "WiFi Tracker: Target completed"
+                completion_message = _build_completion_email_message(
+                    doc,
+                    total_minutes=total_minutes,
+                    completed_at_utc=completed_at,
+                )
+                completion_html = _build_completion_email_html(
+                    doc,
+                    total_minutes=total_minutes,
+                    completed_at_utc=completed_at,
+                )
+
+                if completion_desktop_sent_at is None:
+                    desktop_sent = send_notification(
+                        "Office Wi-Fi Tracker",
+                        completion_message,
                     )
-                send_notification(title, message)
-                notified_date = date
-                logger.info(f"Completion notification sent for {date}")
+                    if desktop_sent:
+                        await store.mark_completion_desktop_sent(date, completed_at)
+                        completion_desktop_sent_at = completed_at
+                        logger.info("Completion desktop notification sent for %s", date)
+
+                if completion_email_sent_at is None:
+                    completion_email_sent = await asyncio.to_thread(
+                        send_email_notification,
+                        completion_subject,
+                        completion_message,
+                        completion_html,
+                    )
+                    if completion_email_sent:
+                        await store.mark_completion_email_sent(date, completed_at)
+                        completion_email_sent_at = completed_at
+                        logger.info("Completion email sent for %s", date)
 
         except Exception:
             logger.exception("Error during timer poll")

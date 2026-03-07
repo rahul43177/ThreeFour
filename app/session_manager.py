@@ -212,12 +212,17 @@ class SessionManager:
             logger.error(f"Failed to start session: {e}")
             return False
 
-    async def end_session(self, final_minutes: Optional[int] = None) -> bool:
+    async def end_session(
+        self,
+        final_minutes: Optional[int] = None,
+        end_time: Optional[datetime] = None
+    ) -> bool:
         """
         End current office session (grace period expired or manual end).
 
         Args:
             final_minutes: Optional final cumulative total. If None, calculated from current time.
+            end_time: Optional UTC datetime when session ended. Defaults to current time.
 
         Returns:
             True if session ended successfully
@@ -227,11 +232,12 @@ class SessionManager:
                 logger.warning("end_session ignored: no active session")
                 return False
 
-            end_time = now_utc()
+            if end_time is None:
+                end_time = now_utc()
 
             # Calculate final total if not provided
             if final_minutes is None:
-                final_minutes = await self._calculate_current_total()
+                final_minutes = await self._calculate_current_total(reference_now=end_time)
 
             # End the session in MongoDB
             await self.store.end_session(
@@ -315,8 +321,12 @@ class SessionManager:
 
             if status.get("active") and status.get("expired"):
                 # Grace period expired without reconnection - end session
-                final_minutes = await self._calculate_current_total()
-                await self.end_session(final_minutes)
+                # Logical end time is when the disconnect happened (grace_period_start)
+                grace_start = status.get("start_time")
+                
+                # Calculate total minutes until grace_period_start
+                final_minutes = await self._calculate_current_total(reference_now=grace_start)
+                await self.end_session(final_minutes, end_time=grace_start)
                 logger.info("Grace period expired - session ended")
 
         except asyncio.CancelledError:
@@ -458,8 +468,10 @@ class SessionManager:
                 self._current_date = date
                 self._current_session_start = doc.get("current_session_start")
 
+                # Use the last recorded activity as the logical end time
+                last_activity = doc.get("last_activity")
                 final_minutes = doc.get("total_minutes", 0)
-                await self.end_session(final_minutes)
+                await self.end_session(final_minutes, end_time=last_activity)
                 logger.info(
                     f"Session recovered: closed stale {doc.get('ssid')} session "
                     f"(current SSID: {current_ssid}, configured office SSID: {settings.office_wifi_name})"
@@ -549,9 +561,12 @@ class SessionManager:
                 "state": "error"
             }
 
-    async def _calculate_current_total(self) -> int:
+    async def _calculate_current_total(self, reference_now: Optional[datetime] = None) -> int:
         """
         Calculate current cumulative total for today.
+
+        Args:
+            reference_now: Optional datetime to use as "now" (useful for grace period end)
 
         Returns:
             Total minutes accumulated today
@@ -573,7 +588,7 @@ class SessionManager:
                     return 0
 
             start = start_raw if start_raw.tzinfo else start_raw.replace(tzinfo=UTC)
-            now = now_utc()
+            now = reference_now or now_utc()
             elapsed_seconds = max(0.0, (now - start).total_seconds())
 
             try:

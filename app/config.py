@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     # URI must be set in .env — never hardcode credentials here
     mongodb_uri: str = ""
     mongodb_database: str = "wifi-calculator"
+    mongodb_test_database: str = "wifi-calculator-test"
 
     # Grace period settings (NEW)
     grace_period_minutes: int = 2
@@ -51,6 +52,13 @@ class Settings(BaseSettings):
 
     # Timezone configuration (NEW)
     user_timezone: str = "Asia/Kolkata"  # India Standard Time (IST = UTC+5:30)
+
+    # Email notification configuration (optional)
+    email_address: str = ""
+    email_password: str = ""
+    email_to: str = ""
+    smtp_server: str = "smtp.gmail.com"
+    smtp_port: int = 587
 
     model_config = ConfigDict(
         env_file=".env",

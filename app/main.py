@@ -261,7 +261,7 @@ def _format_ist_time_12h(dt: Optional[datetime]) -> Optional[str]:
         hour_12 = 12  # Midnight (0:00) = 12 AM, Noon (12:00) = 12 PM
     am_pm = "AM" if ist_dt.hour < 12 else "PM"
 
-    return f"{hour_12:02d}:{ist_dt.minute:02d}:{ist_dt.second:02d} {am_pm} IST"
+    return f"{hour_12:02d}:{ist_dt.minute:02d}:{ist_dt.second:02d} {am_pm}"
 
 
 def _parse_legacy_utc_datetime(session_date: str, session_time: str) -> Optional[datetime]:
@@ -292,15 +292,15 @@ def _resolve_start_time_ist(doc: dict[str, Any], session_date: str) -> Optional[
 
 def _resolve_end_time_ist(doc: dict[str, Any], session_date: str) -> Optional[str]:
     """Resolve session end display time in IST from MongoDB document."""
+    # For active sessions or sessions in grace period, do not show an end time (it's still ongoing)
+    if bool(doc.get("is_active", False)) or doc.get("grace_period_start"):
+        return None
+
     last_end_utc = doc.get("last_session_end_utc")
     if isinstance(last_end_utc, datetime):
         return _format_ist_time_12h(last_end_utc)
 
-    # For active sessions, show current time as the end time
-    if bool(doc.get("is_active", False)):
-        return _format_ist_time_12h(datetime.now(UTC))
-
-    # For completed sessions, last_activity is the session end timestamp.
+    # For completed/inactive sessions, last_activity is the logical session end timestamp.
     last_activity = doc.get("last_activity")
     if isinstance(last_activity, datetime):
         return _format_ist_time_12h(last_activity)
@@ -342,7 +342,8 @@ def _resolve_personal_leave_time_ist(
     first_start_utc = _resolve_first_session_start_utc(doc, session_date)
     if first_start_utc is None:
         return None
-    return _format_ist_time_12h(first_start_utc + target_duration)
+    time_str = _format_ist_time_12h(first_start_utc + target_duration)
+    return time_str.replace(" IST", "") if time_str else None
 
 
 def _calculate_progress_percent(
@@ -401,9 +402,18 @@ async def lifespan(app: FastAPI):
     logger.info("Work duration: %d hours", settings.work_duration_hours)
 
     # Initialize MongoDB connection
-    _mongo_store = MongoDBStore(settings.mongodb_uri, settings.mongodb_database)
+    active_mongo_database = (
+        settings.mongodb_test_database
+        if bool(getattr(settings, "test_mode", False))
+        else settings.mongodb_database
+    )
+    _mongo_store = MongoDBStore(settings.mongodb_uri, active_mongo_database)
     await _mongo_store.connect()
-    logger.info("Connected to MongoDB")
+    logger.info(
+        "Connected to MongoDB (database=%s, test_mode=%s)",
+        active_mongo_database,
+        settings.test_mode,
+    )
 
     # Initialize network connectivity checker
     _network_checker = NetworkConnectivityChecker()
@@ -802,10 +812,16 @@ async def edit_session_start_time(request: EditStartTimeRequest) -> EditStartTim
             else:
                 new_session_start_total_minutes = int(new_baseline_raw)
             
-            print(f"DEBUG ADJUSTMENT: old_start_utc={old_start_utc}, new_start_utc={new_start_utc}, adj_mins={adjustment_minutes}")
-            print(f"DEBUG ADJUSTMENT: old_total={doc.get('total_minutes')}, new_total={new_total_minutes}, new_sess_start_total={new_session_start_total_minutes}, new_curr_start={new_current_session_start}")
+            logger.debug(
+                "Session adjustment: old_start_utc=%s, new_start_utc=%s, adj_mins=%d",
+                old_start_utc, new_start_utc, adjustment_minutes
+            )
+            logger.debug(
+                "Session adjustment: old_total=%d, new_total=%d, new_sess_start_total=%d, new_curr_start=%s",
+                doc.get('total_minutes', 0), new_total_minutes, new_session_start_total_minutes, new_current_session_start
+            )
         else:
-            print("DEBUG ADJUSTMENT: old_start_utc was None! Skipping total_minutes adjustment.")
+            logger.debug("Session adjustment: old_start_utc was None! Skipping total_minutes adjustment.")
             
         success = await _mongo_store.update_first_session_start(
             request.date,
@@ -818,6 +834,10 @@ async def edit_session_start_time(request: EditStartTimeRequest) -> EditStartTim
         
         if not success:
             raise HTTPException(status_code=404, detail=f"No session found for date {request.date}")
+
+        # Reset notification flags so alerts can be recalculated and resent
+        # based on the updated session timeline.
+        await _mongo_store.reset_notification_flags(request.date)
             
         new_leave_time_utc = new_start_utc + target_duration
         new_leave_time_ist = utc_to_ist(new_leave_time_utc)
