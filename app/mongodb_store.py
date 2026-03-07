@@ -126,6 +126,9 @@ class MongoDBStore:
                     "grace_period_start": None,
                     "has_network_access": True,
                     "paused_at": None,
+                    "pre_leave_email_sent_at": None,
+                    "completion_email_sent_at": None,
+                    "completion_desktop_sent_at": None,
                     "created_at": now_utc()
                 },
                 "$set": {
@@ -563,6 +566,97 @@ class MongoDBStore:
             logger.info(f"Daily goal completed for {date}")
 
         return result
+
+    async def mark_pre_leave_email_sent(self, date: str, sent_at: datetime) -> bool:
+        """
+        Mark the day's 10-minute pre-leave email as sent.
+
+        Args:
+            date: DD-MM-YYYY format
+            sent_at: UTC datetime when email was sent
+
+        Returns:
+            True if the marker was updated, False otherwise
+        """
+        result = await self.db.daily_sessions.update_one(
+            {"date": date, "pre_leave_email_sent_at": None},
+            {
+                "$set": {
+                    "pre_leave_email_sent_at": sent_at,
+                    "updated_at": now_utc(),
+                }
+            },
+        )
+        return result.modified_count > 0
+
+    async def mark_completion_email_sent(self, date: str, sent_at: datetime) -> bool:
+        """
+        Mark the day's completion email as sent.
+
+        Args:
+            date: DD-MM-YYYY format
+            sent_at: UTC datetime when email was sent
+
+        Returns:
+            True if the marker was updated, False otherwise
+        """
+        result = await self.db.daily_sessions.update_one(
+            {"date": date, "completion_email_sent_at": None},
+            {
+                "$set": {
+                    "completion_email_sent_at": sent_at,
+                    "updated_at": now_utc(),
+                }
+            },
+        )
+        return result.modified_count > 0
+
+    async def mark_completion_desktop_sent(self, date: str, sent_at: datetime) -> bool:
+        """
+        Mark the day's desktop completion notification as sent.
+
+        Args:
+            date: DD-MM-YYYY format
+            sent_at: UTC datetime when notification was sent
+
+        Returns:
+            True if the marker was updated, False otherwise
+        """
+        result = await self.db.daily_sessions.update_one(
+            {"date": date, "completion_desktop_sent_at": None},
+            {
+                "$set": {
+                    "completion_desktop_sent_at": sent_at,
+                    "updated_at": now_utc(),
+                }
+            },
+        )
+        return result.modified_count > 0
+
+    async def reset_notification_flags(self, date: str) -> bool:
+        """
+        Reset per-day notification sent flags.
+
+        Used after manual start-time edits so alerts can be recalculated and resent.
+
+        Args:
+            date: DD-MM-YYYY format
+
+        Returns:
+            True if a matching document was updated, False otherwise
+        """
+        result = await self.db.daily_sessions.update_one(
+            {"date": date},
+            {
+                "$set": {
+                    "pre_leave_email_sent_at": None,
+                    "completion_email_sent_at": None,
+                    "completion_desktop_sent_at": None,
+                    "updated_at": now_utc(),
+                }
+            },
+        )
+        return result.modified_count > 0
 
     # =========================================================================
     # Query Operations

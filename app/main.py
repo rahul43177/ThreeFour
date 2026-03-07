@@ -402,9 +402,18 @@ async def lifespan(app: FastAPI):
     logger.info("Work duration: %d hours", settings.work_duration_hours)
 
     # Initialize MongoDB connection
-    _mongo_store = MongoDBStore(settings.mongodb_uri, settings.mongodb_database)
+    active_mongo_database = (
+        settings.mongodb_test_database
+        if bool(getattr(settings, "test_mode", False))
+        else settings.mongodb_database
+    )
+    _mongo_store = MongoDBStore(settings.mongodb_uri, active_mongo_database)
     await _mongo_store.connect()
-    logger.info("Connected to MongoDB")
+    logger.info(
+        "Connected to MongoDB (database=%s, test_mode=%s)",
+        active_mongo_database,
+        settings.test_mode,
+    )
 
     # Initialize network connectivity checker
     _network_checker = NetworkConnectivityChecker()
@@ -825,6 +834,10 @@ async def edit_session_start_time(request: EditStartTimeRequest) -> EditStartTim
         
         if not success:
             raise HTTPException(status_code=404, detail=f"No session found for date {request.date}")
+
+        # Reset notification flags so alerts can be recalculated and resent
+        # based on the updated session timeline.
+        await _mongo_store.reset_notification_flags(request.date)
             
         new_leave_time_utc = new_start_utc + target_duration
         new_leave_time_ist = utc_to_ist(new_leave_time_utc)
