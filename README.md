@@ -1,614 +1,307 @@
-# ThreeFour (TF) - Office Time Tracker
+# ThreeFour (DailyFour) - Office Wi-Fi Time Tracker
 
-**Automatic WiFi-Based Office Attendance & Time Tracking**
+Automatic office-time tracking on macOS, driven by Wi-Fi SSID detection and persisted in MongoDB.
 
-ThreeFour is a production-ready macOS application that automatically tracks your office hours by detecting when you connect to your office WiFi network. It runs as a background service via launchd with a beautiful web dashboard for monitoring your time, viewing analytics, and managing work sessions.
+## Overview
 
----
+This application starts and pauses tracking automatically based on your office Wi-Fi and network connectivity, stores daily cumulative sessions in MongoDB, and exposes a dashboard + API for live status and analytics.
 
-## 📋 Current Status
+Recent enhancements include:
 
-**✅ Production Ready - All Core Features Implemented**
+- MongoDB-first architecture for daily session tracking
+- Restart-safe notification deduplication in `daily_sessions`
+- Two-stage email flow: pre-leave reminder and completion email
+- Styled HTML emails with plain-text fallback
+- Completion notifications on macOS and browser
+- Test mode database isolation (`MONGODB_TEST_DATABASE`)
 
-The application is fully functional with **584 passing tests** and runs automatically on macOS login via launchd.
+## Core Behavior
 
-### Key Features Implemented:
-- ✅ **Automatic WiFi Detection** - Triple-fallback detection system (airport → networksetup → system_profiler)
-- ✅ **Smart Session Management** - State machine with 2-minute grace period for brief disconnects
-- ✅ **MongoDB Atlas Storage** - Reliable cloud storage with atomic operations
-- ✅ **IST Timezone Support** - Full timezone awareness for India Standard Time (Asia/Kolkata)
-- ✅ **Timer Engine** - Configurable work hours + buffer time with live countdown
-- ✅ **Network Connectivity Monitoring** - Detects captive portals and pauses timer during re-authentication
-- ✅ **Professional Web Dashboard** - Live status, progress visualization, session history
-- ✅ **Analytics** - Daily, weekly, and monthly time tracking with interactive charts
-- ✅ **Dark Mode** - System-aware theme switching with manual toggle
-- ✅ **Accessibility** - WCAG AA compliant with keyboard navigation and screen reader support
-- ✅ **Notifications** - Browser and macOS native notifications
-- ✅ **Auto-Start on Login** - Runs on login via macOS LaunchAgent with auto-restart
-- ✅ **Gamification** - Streaks, achievements, and progress tracking
+### Session Lifecycle
 
-**Test Coverage:** 584 tests passing, 0 failures, 0 warnings  
-**Documentation:** Comprehensive design system, phase guides, and API docs
+- Session starts when current SSID matches `OFFICE_WIFI_NAME`
+- Session enters grace period on SSID disconnect (`GRACE_PERIOD_MINUTES`)
+- Timer pauses during captive-portal/re-auth when internet is unavailable
+- Session automatically recovers after app restart when possible
+- Day rollover and stale active sessions are closed safely
 
-For detailed implementation status, see [`docs/action-plan.md`](docs/action-plan.md).
+### Timer Target
 
----
+- Production target: `WORK_DURATION_HOURS * 60 + BUFFER_MINUTES` (default: `4h 10m`)
+- Test target: `TEST_DURATION_MINUTES` when `TEST_MODE=true`
+- Daily tracking is cumulative: multiple office visits in one day aggregate into one daily total
 
-## 🎯 Core Features
+### Notification Flow
 
-### 📡 Automatic Tracking
-- Detects office WiFi connection automatically
-- Starts timer when connected to configured office network
-- Pauses during network re-authentication (captive portals)
-- 2-minute grace period for brief disconnections
-- Survives laptop sleep, restarts, and app crashes
-- Session recovery on app restart
+Notification state is persisted in MongoDB per day:
 
-### ⏱️ Time Management
-- Configurable work hour target (default: 4 hours)
-- Configurable buffer time (default: 10 minutes)
-- Test mode for quick validation (2-minute sessions)
-- Real-time progress visualization with circular timer
-- Target completion time display ("Free At")
-- Personal leave time calculation
-- Cumulative daily tracking (multiple sessions = one daily total)
+- `pre_leave_email_sent_at`
+- `completion_email_sent_at`
+- `completion_desktop_sent_at`
 
-### 📊 Analytics & Insights
-- **Today View**: Current session status and all sessions for the day
-- **Weekly View**: Day-by-day breakdown with interactive bar charts
-- **Monthly View**: Week-by-week aggregation with trends
-- Target achievement tracking (did you meet your 4-hour goal?)
-- Average time calculations
-- Session history with start/end times
-- Interactive Chart.js visualizations
+Alert rules:
 
-### 🎨 Professional UI
-- Clean, emoji-free professional interface
-- Responsive design (desktop optimized)
-- System-aware dark mode with manual toggle
-- Real-time updates every 30 seconds
-- Smooth animations and transitions
-- Status cards showing key metrics
-- Progress ring with percentage display
+1. Pre-leave email
+   - Trigger: `0 < remaining_minutes <= 10`
+   - Channel: email only
+   - Subject: `WiFi Tracker: 10 minutes to leave`
+2. Completion alerts
+   - Trigger: `total_minutes >= target_minutes`
+   - Channels: macOS desktop + email
+   - Subject: `WiFi Tracker: Target completed`
 
-### 💾 Data Storage
-- **MongoDB Atlas** - Cloud-based, reliable, automatically backed up
-- Cumulative daily tracking (multiple visits = one daily total)
-- Atomic operations prevent race conditions
-- Session event logging for audit trail
-- Efficient indexing for fast queries
-- Secure connection with SSL/TLS
+After manual start-time edits (`POST /api/session/edit-start-time`), notification flags are reset so alerts can be recalculated and resent.
 
----
+## Email Content
 
-## 🚀 Tech Stack
+Pre-leave email includes:
 
-### Backend
-- **Python 3.11+** - Modern async/await
-- **FastAPI** - High-performance web framework
-- **Uvicorn** - ASGI server
-- **Pydantic** - Data validation and settings
-- **Motor** - Async MongoDB driver
-- **APScheduler** - Background task scheduling
+- Came office at / Start time
+- Duration complete
+- You can leave in 10 mins with end time
 
-### Frontend
-- **Vanilla JavaScript** - No build tools required
-- **Chart.js** - Interactive data visualizations
-- **CSS Variables** - Themeable design system
-- **Jinja2** - Server-side templating
+Completion email includes:
 
-### Storage & Infrastructure
-- **MongoDB Atlas** - Cloud database
-- **File-based fallback** - JSON Lines for legacy compatibility
-- **macOS LaunchAgent** - Background service management
+- Came office at / Start time
+- Duration complete
+- Target completed at
 
-### Testing
-- **Pytest** - Test framework
-- **pytest-asyncio** - Async test support
-- **httpx** - HTTP testing client
+All displayed times are formatted in IST for the user-facing message.
 
----
+## Tech Stack
 
-## 📁 Project Structure
+- Backend: Python, FastAPI, Uvicorn, Pydantic, Motor, PyMongo
+- Frontend: Jinja2 templates, vanilla JavaScript, Chart.js
+- Storage: MongoDB Atlas (`daily_sessions`, `session_events`)
+- Notifications: `osascript` for macOS desktop, SMTP for email
+- Runtime: `launchd` (LaunchAgent) for login auto-start and keepalive
+
+## Project Structure
 
 ```text
 wifi-tracking/
-├── app/                          # Application source code
-│   ├── main.py                   # FastAPI app and API endpoints
-│   ├── config.py                 # Environment-based configuration
-│   ├── wifi_detector.py          # WiFi SSID detection (3 fallback methods)
-│   ├── session_manager.py        # Session state machine with grace period
-│   ├── timer_engine.py           # Timer calculations and polling
-│   ├── mongodb_store.py          # MongoDB operations and queries
-│   ├── network_checker.py        # Internet connectivity detection
-│   ├── timezone_utils.py         # IST timezone conversions
-│   ├── analytics.py              # Weekly/monthly aggregations
-│   ├── gamification.py           # Streaks and achievements
-│   ├── notifier.py               # macOS notification integration
-│   ├── cache.py                  # In-memory session cache
-│   └── file_store.py             # Legacy JSON Lines storage
-│
-├── templates/
-│   └── index.html                # Main dashboard template
-│
+├── app/
+│   ├── main.py
+│   ├── config.py
+│   ├── wifi_detector.py
+│   ├── session_manager.py
+│   ├── timer_engine.py
+│   ├── mongodb_store.py
+│   ├── email_notifier.py
+│   ├── notifier.py
+│   ├── analytics.py
+│   └── timezone_utils.py
 ├── static/
-│   ├── app.js                    # Dashboard client-side logic
-│   ├── style.css                 # Main styles with CSS variables
-│   └── images/                   # Logo and assets
-│
-├── tests/                        # Comprehensive test suite
-│   ├── conftest.py               # Pytest fixtures and setup
-│   ├── test_phase_*.py           # Phase-driven feature tests
-│   └── test_*.py                 # Specific feature tests
-│
-├── docs/                         # Documentation
-│   ├── requirements.md           # Original product requirements
-│   ├── action-plan.md            # Phased development plan
-│   ├── DESIGN_SYSTEM.md          # UI design tokens and guidelines
-│   ├── PERFORMANCE_OPTIMIZATION.md
-│   ├── PHASE_6_AUTO_START_GUIDE.md
-│   └── ...                       # Additional docs
-│
+├── templates/
+├── tests/
 ├── scripts/
-│   ├── install-autostart.sh      # Install launchd service
-│   └── uninstall-autostart.sh    # Remove launchd service
-│
-├── data/                         # Session data (gitignored)
-│   ├── gamification.json         # Streaks and achievements
-│   └── archive/                  # Rotated old files
-│
-├── logs/                         # Application logs (gitignored)
-│   ├── app.log                   # Application logs (optional)
-│   ├── stdout.log                # LaunchAgent stdout
-│   └── stderr.log                # LaunchAgent stderr
-│
-├── com.officetracker.plist       # LaunchAgent configuration
-├── requirements.txt              # Python dependencies
-├── .env                          # Environment configuration (gitignored)
-├── .env.example                  # Example configuration
-└── README.md                     # This file
+│   ├── install-autostart.sh
+│   └── uninstall-autostart.sh
+├── com.officetracker.plist
+├── .env.example
+└── README.md
 ```
 
----
-
-## ⚡️ Quick Start
+## Setup
 
 ### Prerequisites
-- macOS 10.14 or later
-- Python 3.11 or later
-- MongoDB Atlas account (free tier works great)
 
-### 1. Clone and Setup Virtual Environment
+- macOS
+- Python 3.11+
+- MongoDB Atlas connection string
+
+### Install
 
 ```bash
-cd /Users/rahulmishra/Desktop/Personal/wifi-tracking
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. MongoDB Setup
-
-1. Create a free MongoDB Atlas account at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a cluster (M0 free tier is sufficient)
-3. Create a database named `wifi-calculator`
-4. Add your IP address to the IP whitelist
-5. Create a database user with read/write permissions
-6. Copy your connection string
-
-### 3. Configure Environment
+### Environment
 
 ```bash
 cp .env.example .env
-nano .env  # or use your preferred editor
 ```
 
-**Required configuration:**
+Set at least:
 
 ```env
-# Office WiFi name (must match exactly)
-OFFICE_WIFI_NAME=YourActualOfficeWiFiName
-
-# MongoDB Configuration (REQUIRED)
+OFFICE_WIFI_NAME=YourOfficeWiFiName
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/
 MONGODB_DATABASE=wifi-calculator
-
-# Work Duration Settings
+MONGODB_TEST_DATABASE=wifi-calculator-test
 WORK_DURATION_HOURS=4
 BUFFER_MINUTES=10
-
-# Grace Period (minutes - reconnection window before ending session)
 GRACE_PERIOD_MINUTES=2
-
-# Timezone (for accurate time display)
-USER_TIMEZONE=Asia/Kolkata
-
-# Server Configuration
-SERVER_HOST=127.0.0.1
-SERVER_PORT=8787
-
-# Logging
-LOG_LEVEL=INFO
-LOG_TO_FILE=false
-LOG_FILE_PATH=logs/app.log
-
-# Check Intervals (seconds)
-WIFI_CHECK_INTERVAL_SECONDS=30
-TIMER_CHECK_INTERVAL_SECONDS=60
-CONNECTIVITY_CHECK_INTERVAL_SECONDS=30
-
-# Testing Mode
 TEST_MODE=false
 TEST_DURATION_MINUTES=2
-
-# Data Directory (legacy file storage fallback)
-DATA_DIR=data
-ARCHIVE_DIR=data/archive
 ```
 
-### 4. Run Manually (Development Mode)
+Optional email settings:
+
+```env
+EMAIL_ADDRESS=sender@gmail.com
+EMAIL_PASSWORD=your_app_password
+EMAIL_TO=receiver@gmail.com
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+```
+
+Notes:
+
+- `EMAIL_PASSWORD` should be an app password (not your account login password).
+- Keep `TEST_MODE=false` for production tracking.
+
+## Run
+
+### Development
 
 ```bash
 source venv/bin/activate
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8787 --reload
 ```
 
-**Access the dashboard:**
-- Dashboard: http://127.0.0.1:8787/
-- Health Check: http://127.0.0.1:8787/health
-
-### 5. Install Auto-Start (Production Mode)
-
-**The application is designed to run continuously as a background service.**
+### Production (LaunchAgent)
 
 ```bash
-# Install LaunchAgent (runs on login)
+mkdir -p logs
 ./scripts/install-autostart.sh
-
-# Verify it's running
 launchctl list | grep officetracker
-curl http://127.0.0.1:8787/health
+curl -sS --max-time 8 http://127.0.0.1:8787/health
 ```
 
-**The service will:**
-- ✅ Start automatically when you log in
-- ✅ Restart automatically if it crashes (KeepAlive enabled)
-- ✅ Log output to `logs/stdout.log` and `logs/stderr.log`
-- ✅ Track your office time in the background
-- ✅ Survive laptop restarts
-
-**To stop/restart:**
+Modern launchctl lifecycle:
 
 ```bash
-# Stop the service
+# Stop
 launchctl bootout gui/$(id -u)/com.officetracker
 
-# Start the service
+# Start
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.officetracker.plist
 
-# Or use the provided scripts
-./scripts/uninstall-autostart.sh  # Completely remove
-./scripts/install-autostart.sh    # Reinstall
+# Restart
+launchctl bootout gui/$(id -u)/com.officetracker 2>/dev/null
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.officetracker.plist
 ```
 
-**Full documentation:** See [`docs/PHASE_6_AUTO_START_GUIDE.md`](docs/PHASE_6_AUTO_START_GUIDE.md)
-
----
-
-## 🔧 Configuration Reference
-
-### Core Settings
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OFFICE_WIFI_NAME` | `YourOfficeWiFiName` | **Required.** Exact name of your office WiFi network |
-| `MONGODB_URI` | `""` | **Required.** MongoDB Atlas connection string |
-| `MONGODB_DATABASE` | `wifi-calculator` | MongoDB database name |
-| `WORK_DURATION_HOURS` | `4` | Target work hours per day |
-| `BUFFER_MINUTES` | `10` | Extra minutes added to target (e.g., 4h 10m) |
-| `USER_TIMEZONE` | `Asia/Kolkata` | Timezone for time display (IST) |
-
-### Intervals
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `WIFI_CHECK_INTERVAL_SECONDS` | `30` | How often to check WiFi connection |
-| `TIMER_CHECK_INTERVAL_SECONDS` | `60` | How often to update the timer |
-| `CONNECTIVITY_CHECK_INTERVAL_SECONDS` | `30` | How often to check internet connectivity |
-| `GRACE_PERIOD_MINUTES` | `2` | Reconnection window before ending session |
-
-### Server
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SERVER_HOST` | `127.0.0.1` | Server bind address (localhost only) |
-| `SERVER_PORT` | `8787` | Web server port |
-
-### Testing
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TEST_MODE` | `false` | Use short duration for testing |
-| `TEST_DURATION_MINUTES` | `2` | Target duration in test mode |
-
-### Logging
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LOG_LEVEL` | `INFO` | Log verbosity (DEBUG, INFO, WARNING, ERROR) |
-| `LOG_TO_FILE` | `false` | Enable file logging |
-| `LOG_FILE_PATH` | `logs/app.log` | Log file location |
-
----
-
-## 🌐 API Endpoints
-
-### Health Check
-```
-GET /health
-```
-Returns service health status and version info.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "mongodb": "connected",
-  "timestamp": "2026-03-06T10:30:00Z"
-}
-```
-
-### Live Status
-```
-GET /api/status
-```
-Returns current connection status, session state, and timer information.
-
-**Response:**
-```json
-{
-  "connected": true,
-  "ssid": "OfficeWifi",
-  "session_active": true,
-  "start_time": "09:30:00 AM",
-  "elapsed_seconds": 7200,
-  "elapsed_display": "02:00:00",
-  "remaining_seconds": 7800,
-  "remaining_display": "02:10:00",
-  "completed_4h": false,
-  "progress_percent": 48.0,
-  "target_display": "4h 10m",
-  "target_completion_time_ist": "01:40:00 PM",
-  "personal_leave_time_ist": "01:40:00 PM"
-}
-```
-
-### Today's Sessions
-```
-GET /api/today
-```
-Returns all sessions for today and cumulative total.
-
-**Response:**
-```json
-{
-  "date": "06-03-2026",
-  "sessions": [
-    {
-      "start_time": "09:30:00 AM",
-      "end_time": null,
-      "duration_minutes": 120,
-      "completed_4h": false
-    }
-  ],
-  "total_minutes": 120,
-  "total_display": "2h 00m",
-  "personal_leave_time_ist": "01:40:00 PM"
-}
-```
-
-### Weekly Aggregation
-```
-GET /api/weekly?week=2026-W10
-```
-Returns day-by-day breakdown for the specified week (defaults to current week).
-
-**Response:**
-```json
-{
-  "week": "2026-W10",
-  "days": [
-    {
-      "date": "02-03-2026",
-      "day": "Monday",
-      "total_minutes": 270,
-      "session_count": 2,
-      "target_met": true
-    }
-  ],
-  "total_minutes": 1350,
-  "avg_minutes_per_day": 270,
-  "days_target_met": 5
-}
-```
-
-### Monthly Aggregation
-```
-GET /api/monthly?month=2026-03
-```
-Returns week-by-week breakdown for the specified month.
-
-**Response:**
-```json
-{
-  "month": "2026-03",
-  "weeks": [
-    {
-      "week": "2026-W10",
-      "start_date": "02-03-2026",
-      "end_date": "08-03-2026",
-      "total_minutes": 1350,
-      "days_present": 5,
-      "avg_daily_minutes": 270
-    }
-  ],
-  "total_minutes": 5400,
-  "total_days": 20,
-  "avg_daily_minutes": 270
-}
-```
-
-### Gamification
-```
-GET /api/gamification
-```
-Returns streaks and achievements.
-
-**Response:**
-```json
-{
-  "current_streak": 5,
-  "longest_streak": 12,
-  "achievements": [
-    {
-      "id": "early_bird",
-      "name": "Early Bird",
-      "description": "Started work before 9 AM",
-      "icon": "⏰",
-      "condition_met": true
-    }
-  ]
-}
-```
-
----
-
-## 🧪 Testing
-
-### Run All Tests
+Logs:
 
 ```bash
-source venv/bin/activate
-pytest tests/ -v
+tail -f logs/stdout.log
+tail -f logs/stderr.log
 ```
 
-**Expected output:** `584 passed`
+## Test Mode Without Polluting Production Data
 
-### Run Specific Test Suites
-
-```bash
-# WiFi detection tests
-pytest tests/test_phase_1_*.py -v
-
-# Session management tests
-pytest tests/test_phase_2_*.py -v
-
-# Timer engine tests
-pytest tests/test_phase_3_*.py -v
-
-# Analytics tests
-pytest tests/test_phase_5_*.py -v
-
-# MongoDB implementation tests
-pytest tests/test_mongodb_*.py -v
-
-# Timezone tests
-pytest tests/test_timezone_utils.py -v
-```
-
-### Test Mode
-
-For quick validation, enable test mode:
+Use test mode with a separate DB:
 
 ```env
 TEST_MODE=true
 TEST_DURATION_MINUTES=2
+MONGODB_TEST_DATABASE=wifi-calculator-test
 ```
 
-This changes the target from 4 hours to 2 minutes, allowing rapid testing of timer completion and notifications.
+At startup, the app selects:
 
----
+- `MONGODB_TEST_DATABASE` when `TEST_MODE=true`
+- `MONGODB_DATABASE` when `TEST_MODE=false`
 
-## 📖 Documentation
+This keeps production and test session data isolated.
 
-- **[Requirements](docs/requirements.md)** - Original product specification
-- **[Action Plan](docs/action-plan.md)** - Phased development plan with completion status
-- **[Design System](docs/DESIGN_SYSTEM.md)** - UI tokens, colors, typography
-- **[Auto-Start Guide](docs/PHASE_6_AUTO_START_GUIDE.md)** - LaunchAgent setup
-- **[Performance Optimization](docs/PERFORMANCE_OPTIMIZATION.md)** - Caching and efficiency
-- **[QA Reports](docs/PRE_PUSH_QA_REPORT.md)** - Quality assurance audits
+## API Endpoints
 
----
+### `GET /health`
 
-## 🐛 Known Issues & Limitations
+```json
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "office_wifi": "YourOfficeWiFiName",
+  "work_duration_hours": 4
+}
+```
 
-### Current Limitations
-1. **macOS Only** - WiFi detection uses macOS-specific commands
-2. **Single User** - Designed for personal use, not multi-user
-3. **No Authentication** - API is open but binds to localhost only
-4. **WiFi Only** - Cannot track wired (Ethernet) connections
+### `GET /api/status`
 
-### Minor Issues
-1. Debug print statements in `app/main.py` (lines 806-809) should use logger
-2. Gamification uses file storage while rest uses MongoDB
-3. Cache module may be unnecessary given MongoDB's built-in caching
+Live connection, timer, completion, and leave-time status.
 
-### Upcoming Fixes
-See [Bug Tracking List](#bug-tracking-list) in the code review section above.
+### `GET /api/today`
 
----
+Today’s cumulative total and session row for the day.
 
-## 🔒 Privacy & Security
+### `GET /api/weekly`
 
-- **All data stays local or in your private MongoDB database**
-- No third-party analytics or tracking
-- No data sharing with external services
-- Web dashboard binds to localhost only (127.0.0.1)
-- MongoDB connection uses SSL/TLS encryption
-- Logs contain no sensitive information
+Weekly aggregation: `days`, `total_minutes`, `avg_minutes_per_day`, `days_target_met`.
 
----
+### `GET /api/monthly`
 
-## 🤝 Contributing
+Monthly aggregation: `weeks`, `total_minutes`, `total_days_present`, `avg_daily_minutes`.
 
-This is a personal productivity tool, but contributions are welcome:
+### `GET /api/gamification`
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Streaks and achievements.
 
-**Please ensure:**
-- All tests pass (`pytest tests/ -v`)
-- Code follows existing style conventions
-- Documentation is updated if needed
+### `POST /api/session/edit-start-time`
 
----
+Edits start time for a day, recalculates dependent fields, and resets notification sent flags.
 
-## 📝 License
+## Validation and Tests
 
-This project is licensed for personal use. See LICENSE file for details.
+Run all tests:
 
----
+```bash
+venv/bin/python -m pytest -v
+```
 
-## 🙏 Acknowledgments
+Run notification smoke test:
 
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- Charts powered by [Chart.js](https://www.chartjs.org/)
-- Database by [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-- Design inspired by modern dashboard UIs
+```bash
+venv/bin/python tests/test_email_notification.py
+```
 
----
+Run timer alert tests:
 
-## 📞 Support
+```bash
+venv/bin/python -m pytest tests/test_timer_email_alerts.py -v
+```
 
-For issues, questions, or feature requests:
-1. Check the [documentation](docs/)
-2. Review the [action plan](docs/action-plan.md) for implementation details
-3. Check logs in `logs/` directory
-4. File an issue in the repository
+Run notification flag reset test:
 
----
+```bash
+venv/bin/python -m pytest tests/test_edit_start_time_notification_flags.py -v
+```
 
-**Made with ☕ in Bangalore, India (IST)**
+## Troubleshooting
+
+### Service not reachable on `127.0.0.1:8787`
+
+- Confirm LaunchAgent is loaded: `launchctl list | grep officetracker`
+- Check service detail: `launchctl print gui/$(id -u)/com.officetracker`
+- Check logs: `tail -f logs/stderr.log`
+- Restart with `bootout` + `bootstrap` (not deprecated `load`/`unload`)
+
+### No macOS desktop notification
+
+- Ensure app is running on macOS (notifications use `osascript`)
+- Verify completion threshold is actually reached
+- Check `completion_desktop_sent_at` in `daily_sessions` to confirm send state
+
+### No email received
+
+- Verify `EMAIL_ADDRESS`, `EMAIL_PASSWORD`, `EMAIL_TO`, `SMTP_SERVER`, `SMTP_PORT`
+- Use app password for Gmail
+- Run: `venv/bin/python tests/test_email_notification.py`
+- Check logs for SMTP/authentication errors
+
+## Security and Privacy
+
+- API binds to localhost by default (`127.0.0.1`)
+- MongoDB TLS is enabled via CA certificates
+- Credentials are read from `.env` and should never be committed
+
+## Additional Documentation
+
+- [docs/action-plan.md](docs/action-plan.md)
+- [docs/PHASE_6_AUTO_START_GUIDE.md](docs/PHASE_6_AUTO_START_GUIDE.md)
+- [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
