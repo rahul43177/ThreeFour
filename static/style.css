@@ -446,6 +446,7 @@ button {
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
+    padding-top: 0.55rem;
 }
 
 #tab-live {
@@ -464,6 +465,16 @@ button {
     grid-template-columns: minmax(0, 1.22fr) minmax(320px, 0.92fr);
     gap: 1rem;
     align-items: stretch;
+}
+
+#sync-status {
+    margin: 0 auto;
+}
+
+#tab-today > .card,
+#tab-weekly > .card,
+#tab-monthly > .card {
+    margin-top: 0;
 }
 
 .hero-timer-column {
