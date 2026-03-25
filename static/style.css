@@ -641,7 +641,7 @@ button {
 
 #card-remaining.progress-low .status-card-value,
 #card-free-at .status-card-value {
-    color: #fff;
+    color: var(--text);
 }
 
 .progress-wrap {
