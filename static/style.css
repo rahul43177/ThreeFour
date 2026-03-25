@@ -37,16 +37,25 @@
 }
 
 [data-theme="light"] {
-    color-scheme: dark;
-    --bg: #08090b;
-    --text-soft: hsla(var(--foreground) / 0.88);
-    --text-muted: hsla(var(--foreground) / 0.68);
-    --text-dim: hsla(var(--foreground) / 0.5);
-    --line: rgba(255, 255, 255, 0.24);
-    --line-strong: rgba(255, 255, 255, 0.34);
-    --surface-dark: rgba(20, 22, 26, 0.72);
-    --surface-dark-2: rgba(23, 27, 34, 0.78);
-    --surface-dark-3: rgba(9, 13, 18, 0.82);
+    color-scheme: light;
+    --bg: #edf1f4;
+    --text: #121417;
+    --text-soft: rgba(18, 20, 23, 0.92);
+    --text-muted: rgba(18, 20, 23, 0.7);
+    --text-dim: rgba(18, 20, 23, 0.48);
+    --line: rgba(18, 20, 23, 0.12);
+    --line-strong: rgba(18, 20, 23, 0.2);
+    --glass-soft: rgba(255, 255, 255, 0.36);
+    --glass-strong: rgba(255, 255, 255, 0.6);
+    --surface-dark: rgba(255, 255, 255, 0.7);
+    --surface-dark-2: rgba(255, 255, 255, 0.78);
+    --surface-dark-3: rgba(255, 255, 255, 0.9);
+    --success: #0b8f63;
+    --warning: #b77900;
+    --error: #d25151;
+    --shadow-soft: 0 20px 60px rgba(36, 50, 66, 0.12);
+    --shadow-strong: 0 26px 82px rgba(36, 50, 66, 0.16);
+    --shadow-hero: 0 32px 96px rgba(36, 50, 66, 0.18);
 }
 
 * {
@@ -114,6 +123,10 @@ button {
     object-fit: contain;
     transform: translateX(-50%);
     opacity: 0.94;
+}
+
+.background-video-light {
+    display: none;
 }
 
 .video-stage-overlay {
@@ -446,6 +459,7 @@ button {
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
+    padding-top: 0.55rem;
 }
 
 #tab-live {
@@ -464,6 +478,19 @@ button {
     grid-template-columns: minmax(0, 1.22fr) minmax(320px, 0.92fr);
     gap: 1rem;
     align-items: stretch;
+}
+
+#sync-status {
+    margin: 0 auto;
+}
+
+#tab-today > .card,
+#tab-weekly > .card,
+#tab-monthly > .card {
+    width: min(100%, 1280px);
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0;
 }
 
 .hero-timer-column {
@@ -614,7 +641,7 @@ button {
 
 #card-remaining.progress-low .status-card-value,
 #card-free-at .status-card-value {
-    color: #fff;
+    color: var(--text);
 }
 
 .progress-wrap {
@@ -1253,6 +1280,241 @@ select:focus-visible,
 .arrival-label,
 .arrival-time {
     display: none;
+}
+
+[data-theme="light"] .video-stage {
+    background: #edf1f4;
+}
+
+[data-theme="light"] .background-video-dark {
+    display: none;
+}
+
+[data-theme="light"] .background-video-light {
+    display: block;
+}
+
+[data-theme="light"] .background-video {
+    opacity: 0.42;
+    filter: saturate(0.78) brightness(1.06);
+}
+
+[data-theme="light"] .video-stage-overlay {
+    background: rgba(255, 255, 255, 0.42);
+}
+
+[data-theme="light"] .video-stage-gradient {
+    background: linear-gradient(to bottom, rgba(237, 241, 244, 0), #edf1f4);
+}
+
+[data-theme="light"] .header {
+    background: rgba(255, 255, 255, 0.58);
+    border-color: rgba(18, 20, 23, 0.14);
+    box-shadow: 0 18px 48px rgba(36, 50, 66, 0.12);
+}
+
+[data-theme="light"] .logo {
+    border-color: rgba(18, 20, 23, 0.12);
+}
+
+[data-theme="light"] .title,
+[data-theme="light"] .section-header h2,
+[data-theme="light"] #tab-today h2,
+[data-theme="light"] .modal-header h2,
+[data-theme="light"] .out-of-office-title,
+[data-theme="light"] #elapsed-time,
+[data-theme="light"] #target-display,
+[data-theme="light"] .status-card-value,
+[data-theme="light"] .stat-value,
+[data-theme="light"] .total,
+[data-theme="light"] .timer-countdown,
+[data-theme="light"] .free-at-time,
+[data-theme="light"] #current-week-label,
+[data-theme="light"] #current-month-label,
+[data-theme="light"] .btn-secondary,
+[data-theme="light"] .modal-close,
+[data-theme="light"] .time-dropdown-item,
+[data-theme="light"] .theme-toggle {
+    color: #121417;
+}
+
+[data-theme="light"] .tabs {
+    background: rgba(255, 255, 255, 0.64);
+    border-color: rgba(18, 20, 23, 0.1);
+}
+
+[data-theme="light"] .tab {
+    color: rgba(18, 20, 23, 0.82);
+}
+
+[data-theme="light"] .tab:hover {
+    color: #121417;
+}
+
+[data-theme="light"] .tab.active {
+    background: #121417;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(18, 20, 23, 0.14);
+}
+
+[data-theme="light"] .theme-toggle {
+    background: #121417;
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(18, 20, 23, 0.14);
+}
+
+[data-theme="light"] .badge {
+    background: rgba(18, 20, 23, 0.06);
+    color: #121417;
+}
+
+[data-theme="light"] .badge-success {
+    background: rgba(11, 143, 99, 0.08);
+    border-color: rgba(11, 143, 99, 0.18);
+}
+
+[data-theme="light"] .badge-warning {
+    background: rgba(183, 121, 0, 0.08);
+    border-color: rgba(183, 121, 0, 0.18);
+}
+
+[data-theme="light"] .badge-danger {
+    background: rgba(210, 81, 81, 0.08);
+    border-color: rgba(210, 81, 81, 0.18);
+}
+
+[data-theme="light"] .card,
+[data-theme="light"] .status-card,
+[data-theme="light"] .info-card,
+[data-theme="light"] .chart-container,
+[data-theme="light"] .stat-card,
+[data-theme="light"] table,
+[data-theme="light"] .selector,
+[data-theme="light"] .out-of-office-panel,
+[data-theme="light"] .contextual-message,
+[data-theme="light"] .completion,
+[data-theme="light"] .modal-content,
+[data-theme="light"] .time-dropdown {
+    border-color: rgba(18, 20, 23, 0.12);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.56)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(248, 250, 252, 0.78));
+    box-shadow: var(--shadow-soft);
+}
+
+[data-theme="light"] .hero-timer {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.62)),
+        linear-gradient(180deg, rgba(247, 249, 252, 0.72), rgba(236, 240, 244, 0.86));
+}
+
+[data-theme="light"] .hero-timer::after {
+    border-color: rgba(18, 20, 23, 0.08);
+}
+
+[data-theme="light"] .progress-ring-track {
+    stroke: rgba(18, 20, 23, 0.12);
+}
+
+[data-theme="light"] .progress-ring-fill {
+    stroke: #121417;
+}
+
+[data-theme="light"] .progress-track {
+    background: rgba(18, 20, 23, 0.08);
+}
+
+[data-theme="light"] .progress-fill {
+    background: rgba(18, 20, 23, 0.86);
+}
+
+[data-theme="light"] .status-card-label,
+[data-theme="light"] .stat-label,
+[data-theme="light"] thead th,
+[data-theme="light"] .countdown-label,
+[data-theme="light"] .free-at-label {
+    color: rgba(18, 20, 23, 0.48);
+}
+
+[data-theme="light"] .status-card-detail,
+[data-theme="light"] .muted,
+[data-theme="light"] .sync-status,
+[data-theme="light"] tbody td,
+[data-theme="light"] .out-of-office-subtitle,
+[data-theme="light"] .helper-text,
+[data-theme="light"] .elapsed-target,
+[data-theme="light"] .elapsed-separator,
+[data-theme="light"] .elapsed-percent {
+    color: rgba(18, 20, 23, 0.66);
+}
+
+[data-theme="light"] .status-line {
+    color: rgba(18, 20, 23, 0.66);
+}
+
+[data-theme="light"] tbody tr:hover td {
+    background: rgba(18, 20, 23, 0.04);
+}
+
+[data-theme="light"] .btn-secondary {
+    background: rgba(18, 20, 23, 0.06);
+}
+
+[data-theme="light"] .btn-secondary:hover,
+[data-theme="light"] .time-dropdown-item:hover,
+[data-theme="light"] .time-dropdown-item.highlighted {
+    background: rgba(18, 20, 23, 0.08);
+}
+
+[data-theme="light"] .contextual-message.disconnected,
+[data-theme="light"] .sync-status.error {
+    background: rgba(210, 81, 81, 0.08);
+}
+
+[data-theme="light"] .contextual-message.milestone {
+    color: #121417;
+}
+
+[data-theme="light"] .contextual-message.celebration,
+[data-theme="light"] .completion {
+    background: rgba(11, 143, 99, 0.08);
+}
+
+[data-theme="light"] .modal {
+    background: rgba(238, 242, 246, 0.7);
+}
+
+[data-theme="light"] .modal-warning {
+    background: rgba(183, 121, 0, 0.08);
+    color: #8a5e00;
+    border-color: rgba(183, 121, 0, 0.18);
+}
+
+[data-theme="light"] .form-group label,
+[data-theme="light"] .form-group input,
+[data-theme="light"] .form-group select {
+    color: #121417;
+}
+
+[data-theme="light"] .form-group input,
+[data-theme="light"] .form-group select {
+    border-color: rgba(18, 20, 23, 0.1);
+    background: rgba(255, 255, 255, 0.58);
+}
+
+[data-theme="light"] .form-group input[type="text"]:not([readonly]):focus {
+    border-color: rgba(18, 20, 23, 0.22);
+    box-shadow: 0 0 0 3px rgba(18, 20, 23, 0.06);
+}
+
+[data-theme="light"] .btn-primary {
+    background: #121417;
+    color: #fff;
+}
+
+[data-theme="light"] .btn-cancel {
+    background: rgba(18, 20, 23, 0.06);
+    color: #121417;
 }
 
 @media (max-width: 1100px) {
